@@ -1,8 +1,9 @@
 import themidibus.*; //Import the library
 
-MidiBus myBus; // The MidiBus
+MidiBus midiBus; // The MidiBus
 
 ArrayList<Note> notes; // A bunch of notes
+ArrayList<ControllerChange> controllerChanges; // A bunch of notes
 
 JSONObject json;
 
@@ -13,7 +14,13 @@ int genLoopDelay;
 
 int configRefreshDelayTime;
 
-String config = "{\"CHANNEL_MAX\": 255," +
+// Default Main config
+String mainConfig = "{\"USE_CONFIG_REFRESH\": true," + 
+    "\"CONFIG_REFRESH_DELAY\": 10000" +
+    "}";
+
+// Default Note config
+String noteConfig = "{\"CHANNEL_MAX\": 255," +
     "\"CHANNEL_MIN\": 0," + 
     "\"PITCH_MAX\": 100," +
     "\"PITCH_MIN\": 0," +
@@ -31,34 +38,52 @@ String config = "{\"CHANNEL_MAX\": 255," +
     "\"MAIN_LOOP_DELAY_MIN\": 100," +
     "\"USE_SAME_CHANNEL_FOR_CURRENT_LOOP\": true," +
     "\"USE_GLOBAL_LOOP_DELAY\": true," +
-    "\"USE_GEN_DELAY\": true," +
-    "\"USE_CONFIG_REFRESH\": true," +
-    "\"CONFIG_REFRESH_DELAY\": 10000" +
+    "\"USE_GEN_DELAY\": true" +
     "}";
 
-int CHANNEL_MAX = 255;
-int CHANNEL_MIN = 0;
+// Default CC config
+String ccConfig = "{\"USE_CC_GEN\": true," +
+    "\"CC_GEN_NB_MAX\": 2000," +
+    "\"CC_GEN_NB_MIN\": 100," +
+    "\"CC_GEN_CHANNEL_MAX\": 0," +
+    "\"CC_GEN_CHANNEL_MIN\": 127," +
+    "\"CC_GEN_NUMBER_MAX\": 10," +
+    "\"CC_GEN_NUMBER_MIN\": 0," +
+    "\"CC_GEN_VALUE_MAX\": 90," +
+    "\"CC_GEN_VALUE_MIN\": 0," +
+    "\"CC_GEN_DELAY_MAX\": 10000," +
+    "\"CC_GEN_DELAY_MIN\": 0" +
+    "}";
 
-int PITCH_MAX = 100;
-int PITCH_MIN = 0;
+// Main config values
+boolean USE_CONFIG_REFRESH = true;
 
-int VELOCITY_MAX = 255;
-int VELOCITY_MIN = 0;
+int CONFIG_REFRESH_DELAY;
 
-int NOTE_TIME_MAX = 10000;
-int NOTE_TIME_MIN = 2000;
+// Note config values
+int CHANNEL_MAX;
+int CHANNEL_MIN;
 
-int NOTE_DELAY_MAX = 10000;
-int NOTE_DELAY_MIN = 2000;
+int PITCH_MAX;
+int PITCH_MIN;
 
-int GEN_NOTE_DELAY_MAX = 10000;
-int GEN_NOTE_DELAY_MIN = 0;
+int VELOCITY_MAX;
+int VELOCITY_MIN;
 
-int GEN_NB_NOTES_MAX = 20;
-int GEN_NB_NOTES_MIN = 0;
+int NOTE_TIME_MAX;
+int NOTE_TIME_MIN;
 
-int MAIN_LOOP_DELAY_MAX = 2000;
-int MAIN_LOOP_DELAY_MIN = 100;
+int NOTE_DELAY_MAX;
+int NOTE_DELAY_MIN;
+
+int GEN_NOTE_DELAY_MAX;
+int GEN_NOTE_DELAY_MIN;
+
+int GEN_NB_NOTES_MAX;
+int GEN_NB_NOTES_MIN;
+
+int MAIN_LOOP_DELAY_MAX;
+int MAIN_LOOP_DELAY_MIN;
 
 boolean USE_SAME_CHANNEL_FOR_CURRENT_LOOP = true;
 
@@ -66,20 +91,24 @@ boolean USE_GLOBAL_LOOP_DELAY = true;
 
 boolean USE_GEN_DELAY = true;
 
-boolean USE_CONFIG_REFRESH = true;
+// CC generator values
+boolean USE_CC_GEN = true;
 
-int CONFIG_REFRESH_DELAY = 1000;
+int CC_GEN_NB_MAX, CC_GEN_NB_MIN, CC_GEN_CHANNEL_MAX, CC_GEN_CHANNEL_MIN, CC_GEN_NUMBER_MAX, 
+  CC_GEN_NUMBER_MIN, CC_GEN_VALUE_MAX, CC_GEN_VALUE_MIN, CC_GEN_DELAY_MAX, CC_GEN_DELAY_MIN;
 
 void setup() {
   size(400, 400);
   background(0);
-  LoadConfig();
+  
+  LoadConfig(true); // Load main, note and cc config file from json files or default string config 
 
   MidiBus.list(); // List all available Midi devices on STDOUT. This will show each device's index and name.
 
-  myBus = new MidiBus(this, -1, "Microsoft GS Wavetable Synth"); // Create a new MidiBus with no input device and the default Java Sound Synthesizer as the output device.
+  midiBus = new MidiBus(this, -1, "Microsoft GS Wavetable Synth"); // Create a new MidiBus with no input device and the default Java Sound Synthesizer as the output device.
     
   notes = new ArrayList<Note>();
+  controllerChanges = new ArrayList<ControllerChange>();
   
   last = millis();
   
@@ -97,7 +126,7 @@ void draw() {
     configRefreshDelayTime = configRefreshDelayTime - delta;
     
     if(configRefreshDelayTime <= 0) {
-      RefreshConfig();
+      LoadConfig(false);
       configRefreshDelayTime = CONFIG_REFRESH_DELAY;
     }
   }
@@ -158,10 +187,32 @@ void draw() {
   
   }
 
-  //int number = 0;
-  //int value = 90;
-
-  //myBus.sendControllerChange(channel, number, value); // Send a controllerChange
+  for(int i = 0; i < controllerChanges.size(); i++) {
+    controllerChanges.get(i).delay = controllerChanges.get(i).delay - delta;
+    
+    if(controllerChanges.get(i).delay <= 0) {
+      controllerChanges.get(i).Change();
+      controllerChanges.remove(i);
+    }
+  }
+  
+  if(USE_CC_GEN) {
+        
+    // How many new CC should be generated on this loop
+    int newNumberOfCC = int(random(CC_GEN_NB_MIN, CC_GEN_NB_MAX));
+    
+    while(newNumberOfCC > 0) {
+      
+      int channel = int(random(CC_GEN_CHANNEL_MIN, CC_GEN_CHANNEL_MAX));
+      int number = int(random(CC_GEN_NUMBER_MIN, CC_GEN_NUMBER_MAX));
+      int value = int(random(CC_GEN_VALUE_MIN, CC_GEN_VALUE_MAX));
+      
+      ControllerChange cc = new ControllerChange(channel, number, value, int(random(CC_GEN_DELAY_MIN, CC_GEN_DELAY_MAX)));
+      controllerChanges.add(cc);
+      
+      newNumberOfCC--;
+    }
+  }
   
   if(USE_GLOBAL_LOOP_DELAY)
     delay(int(random(MAIN_LOOP_DELAY_MIN, MAIN_LOOP_DELAY_MAX))); //Main loop delay
@@ -172,28 +223,43 @@ void delay(int time) {
   while (millis () < current+time) Thread.yield();
 }
 
-void LoadConfig() {
+void LoadConfig(boolean init) {
   try {
-    json = loadJSONObject("config.json");
-    ParseConfig(json);
-  } catch (Exception e) {
-    json = parseJSONObject(config);
-    ParseConfig(json);
+    json = loadJSONObject("main.json");
+    ParseMainConfig(json);
     
-    saveJSONObject(json, "data/config.json");
-  }
-}
-
-void RefreshConfig() {
-  try {
-    json = loadJSONObject("config.json");
-    ParseConfig(json);
+    json = loadJSONObject("note.json");
+    ParseNoteConfig(json);
+    
+    json = loadJSONObject("cc.json");
+    ParseCCConfig(json);
+    
   } catch (Exception e) {
-    //json = parseJSONObject(config);
+    if(init) {    
+      json = parseJSONObject(mainConfig);
+      ParseMainConfig(json);    
+      saveJSONObject(json, "data/main.json");
+      
+      json = parseJSONObject(noteConfig);
+      ParseNoteConfig(json);    
+      saveJSONObject(json, "data/note.json");
+      
+      json = parseJSONObject(ccConfig);
+      ParseCCConfig(json);    
+      saveJSONObject(json, "data/cc.json");
+    }
   }
 }
 
-void ParseConfig(JSONObject json) {
+void ParseMainConfig(JSONObject json) {
+  if(json != null)
+  {
+    USE_CONFIG_REFRESH = json.getBoolean("USE_CONFIG_REFRESH");
+    CONFIG_REFRESH_DELAY = json.getInt("CONFIG_REFRESH_DELAY");
+  }
+}
+
+void ParseNoteConfig(JSONObject json) {
   if(json != null)
   {
     CHANNEL_MAX = json.getInt("CHANNEL_MAX");
@@ -225,19 +291,34 @@ void ParseConfig(JSONObject json) {
     USE_GLOBAL_LOOP_DELAY = json.getBoolean("USE_GLOBAL_LOOP_DELAY");
     
     USE_GEN_DELAY = json.getBoolean("USE_GEN_DELAY");
+  }
+}
+
+void ParseCCConfig(JSONObject json) {
+  if(json != null)
+  {
+    USE_CC_GEN = json.getBoolean("USE_CC_GEN");;
+
+    CC_GEN_NB_MAX = json.getInt("CC_GEN_NB_MAX");;
+    CC_GEN_NB_MIN = json.getInt("CC_GEN_NB_MIN");;
     
-    USE_CONFIG_REFRESH = json.getBoolean("USE_CONFIG_REFRESH");
-    CONFIG_REFRESH_DELAY = json.getInt("CONFIG_REFRESH_DELAY");
+    CC_GEN_CHANNEL_MAX = json.getInt("CC_GEN_CHANNEL_MAX");;
+    CC_GEN_CHANNEL_MIN = json.getInt("CC_GEN_CHANNEL_MIN");;
+    
+    CC_GEN_NUMBER_MAX = json.getInt("CC_GEN_NUMBER_MAX");;
+    CC_GEN_NUMBER_MIN = json.getInt("CC_GEN_NUMBER_MIN");;
+    
+    CC_GEN_VALUE_MAX = json.getInt("CC_GEN_VALUE_MAX");;
+    CC_GEN_VALUE_MIN = json.getInt("CC_GEN_VALUE_MIN");;
+    
+    CC_GEN_DELAY_MAX = json.getInt("CC_GEN_DELAY_MAX");;
+    CC_GEN_DELAY_MIN = json.getInt("CC_GEN_DELAY_MIN");;
   }
 }
 
 class Note {
   
-  int channel = 0;
-  int pitch = 0;
-  int velocity = 0;
-  int time = 0;
-  int delay = 0;
+  int channel, pitch, velocity, time, delay;
   boolean playing = false;
   
   Note(int channel, int pitch, int velocity, int time, int delay) {
@@ -250,7 +331,7 @@ class Note {
   
   void Play() {
     if(!playing) {
-      myBus.sendNoteOn(channel, pitch, velocity); // Send a Midi noteOn
+      midiBus.sendNoteOn(channel, pitch, velocity); // Send a Midi noteOn
     }
     
     playing = true;
@@ -258,7 +339,7 @@ class Note {
   
   void Stop() {
     if(playing) {
-      myBus.sendNoteOff(channel, pitch, velocity); // Send a Midi nodeOff
+      midiBus.sendNoteOff(channel, pitch, velocity); // Send a Midi nodeOff
     }
     
     playing = false;
@@ -267,4 +348,30 @@ class Note {
   boolean IsPlaying() {
     return playing;
   }
+}
+
+class ControllerChange {
+  int channel, number, value, delay;
+  boolean changed = false;
+  
+  ControllerChange(int channel, int number, int value, int delay) {
+    this.channel = channel;
+    this.number = number;
+    this.value = value;
+    this.delay = delay;
+  }
+  
+  void Change() {
+    midiBus.sendControllerChange(channel, number, value);
+    changed = true;
+  }
+  
+  boolean IsChanged() {
+    return changed;
+  }
+  
+  void SetChanged(boolean changed) {
+    this.changed = changed;
+  }
+  
 }
