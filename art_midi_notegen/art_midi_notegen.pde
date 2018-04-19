@@ -7,6 +7,8 @@ ArrayList<Note> notes; // A bunch of notes
 int last;
 int delta;
 
+int genLoopDelay;
+
 int CHANNEL_MAX = 255;
 int CHANNEL_MIN = 0;
 
@@ -16,19 +18,26 @@ int PITCH_MIN = 0;
 int VELOCITY_MAX = 255;
 int VELOCITY_MIN = 0;
 
-int NOTE_TIME_MAX = 1000;
-int NOTE_TIME_MIN = 0;
+int NOTE_TIME_MAX = 10000;
+int NOTE_TIME_MIN = 2000;
 
-int NOTE_DELAY_MAX = 1000;
-int NOTE_DELAY_MIN = 0;
+int NOTE_DELAY_MAX = 10000;
+int NOTE_DELAY_MIN = 2000;
 
-int GEN_NB_NOTES_MAX = 10;
+int GEN_NOTE_DELAY_MAX = 10000;
+int GEN_NOTE_DELAY_MIN = 0;
+
+int GEN_NB_NOTES_MAX = 20;
 int GEN_NB_NOTES_MIN = 0;
 
-int MAIN_LOOP_DELAY_MAX = 1000;
+int MAIN_LOOP_DELAY_MAX = 2000;
 int MAIN_LOOP_DELAY_MIN = 100;
 
 boolean USE_SAME_CHANNEL_FOR_CURRENT_LOOP = true;
+
+boolean USE_GLOBAL_LOOP_DELAY = true;
+
+boolean USE_GEN_DELAY = true;
 
 void setup() {
   size(400, 400);
@@ -41,6 +50,8 @@ void setup() {
   notes = new ArrayList<Note>();
   
   last = millis();
+  
+  genLoopDelay = 0; //int(random(GEN_NOTE_DELAY_MIN, GEN_NOTE_DELAY_MAX));
 }
 
 void draw() {
@@ -69,25 +80,39 @@ void draw() {
     }
   }
   
-  int channel = int(random(CHANNEL_MIN, CHANNEL_MAX));
+  // If using generate note delay, calculate new by sub delta time
+  if(USE_GEN_DELAY && genLoopDelay > 0) {
+    genLoopDelay = genLoopDelay - delta;
+  }
   
-  // How many new Notes should be generated on this loop
-  int newNumberOfNotes = int(random(GEN_NB_NOTES_MIN, GEN_NB_NOTES_MAX));
+  // If generate note delay is zero or below, or not using generate note delay
+  // then generate some notes
+  if(genLoopDelay <= 0 || !USE_GEN_DELAY) {  
   
-  while(newNumberOfNotes > 0) {
+    int channel = int(random(CHANNEL_MIN, CHANNEL_MAX));
     
-    if(!USE_SAME_CHANNEL_FOR_CURRENT_LOOP) { // Change the channel for every new note
-      channel = int(random(CHANNEL_MIN, CHANNEL_MAX));
+    // How many new Notes should be generated on this loop
+    int newNumberOfNotes = int(random(GEN_NB_NOTES_MIN, GEN_NB_NOTES_MAX));
+    
+    while(newNumberOfNotes > 0) {
+      
+      if(!USE_SAME_CHANNEL_FOR_CURRENT_LOOP) { // Change the channel for every new note
+        channel = int(random(CHANNEL_MIN, CHANNEL_MAX));
+      }
+    
+      int pitch = int(random(PITCH_MIN, PITCH_MAX)); // Generate a random pitch value for the new note
+      int velocity = int(random(VELOCITY_MIN, VELOCITY_MAX)); // Generate a random velocity value for the new note
+      
+      // Create a new Note
+      Note newNote = new Note(channel, pitch, velocity, int(random(NOTE_TIME_MIN, NOTE_TIME_MAX)), int(random(NOTE_DELAY_MIN, NOTE_DELAY_MAX)));
+      notes.add(newNote);
+      
+      newNumberOfNotes--;
     }
+    
+    if(USE_GEN_DELAY) // If using generate note delay, get a new delay value
+      genLoopDelay = int(random(GEN_NOTE_DELAY_MIN, GEN_NOTE_DELAY_MAX));
   
-    int pitch = int(random(PITCH_MIN, PITCH_MAX)); // Generate a random pitch value for the new note
-    int velocity = int(random(VELOCITY_MIN, VELOCITY_MAX)); // Generate a random velocity value for the new note
-    
-    // Create a new Note
-    Note newNote = new Note(channel, pitch, velocity, int(random(NOTE_TIME_MIN, NOTE_TIME_MAX)), int(random(NOTE_DELAY_MIN, NOTE_DELAY_MAX)));
-    notes.add(newNote);
-    
-    newNumberOfNotes--;
   }
 
   //int number = 0;
@@ -95,7 +120,8 @@ void draw() {
 
   //myBus.sendControllerChange(channel, number, value); // Send a controllerChange
   
-  delay(int(random(MAIN_LOOP_DELAY_MIN, MAIN_LOOP_DELAY_MAX))); //Main loop delay
+  if(USE_GLOBAL_LOOP_DELAY)
+    delay(int(random(MAIN_LOOP_DELAY_MIN, MAIN_LOOP_DELAY_MAX))); //Main loop delay
 }
 
 void delay(int time) {
