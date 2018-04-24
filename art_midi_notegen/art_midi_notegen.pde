@@ -3,20 +3,16 @@ import themidibus.*; //Import the library
 MidiBus midiBus; // The MidiBus
 
 ArrayList<Note> notes; // A bunch of notes
-ArrayList<ControllerChange> controllerChanges; // A bunch of notes
+ArrayList<ControllerChange> controllerChanges; // A bunch of cc's
 
-JSONObject json;
+JSONObject mainJson, noteJson, ccJson;
 
-int last;
-int delta;
-
-int genLoopDelay;
-
-int configRefreshDelayTime;
+int last, delta, genLoopDelay, configRefreshDelayTime;
 
 // Default Main config
 String mainConfig = "{\"USE_CONFIG_REFRESH\": true," + 
-    "\"CONFIG_REFRESH_DELAY\": 10000" +
+    "\"CONFIG_REFRESH_DELAY\": 10000," +
+    "\"MIDI_OUTPUT_DEVICE\": \"Microsoft GS Wavetable Synth\"" +
     "}";
 
 // Default Note config
@@ -55,48 +51,6 @@ String ccConfig = "{\"USE_CC_GEN\": true," +
     "\"CC_GEN_DELAY_MIN\": 0" +
     "}";
 
-// Main config values
-boolean USE_CONFIG_REFRESH = true;
-
-int CONFIG_REFRESH_DELAY;
-
-// Note config values
-int CHANNEL_MAX;
-int CHANNEL_MIN;
-
-int PITCH_MAX;
-int PITCH_MIN;
-
-int VELOCITY_MAX;
-int VELOCITY_MIN;
-
-int NOTE_TIME_MAX;
-int NOTE_TIME_MIN;
-
-int NOTE_DELAY_MAX;
-int NOTE_DELAY_MIN;
-
-int GEN_NOTE_DELAY_MAX;
-int GEN_NOTE_DELAY_MIN;
-
-int GEN_NB_NOTES_MAX;
-int GEN_NB_NOTES_MIN;
-
-int MAIN_LOOP_DELAY_MAX;
-int MAIN_LOOP_DELAY_MIN;
-
-boolean USE_SAME_CHANNEL_FOR_CURRENT_LOOP = true;
-
-boolean USE_GLOBAL_LOOP_DELAY = true;
-
-boolean USE_GEN_DELAY = true;
-
-// CC generator values
-boolean USE_CC_GEN = true;
-
-int CC_GEN_NB_MAX, CC_GEN_NB_MIN, CC_GEN_CHANNEL_MAX, CC_GEN_CHANNEL_MIN, CC_GEN_NUMBER_MAX, 
-  CC_GEN_NUMBER_MIN, CC_GEN_VALUE_MAX, CC_GEN_VALUE_MIN, CC_GEN_DELAY_MAX, CC_GEN_DELAY_MIN;
-
 void setup() {
   size(400, 400);
   background(0);
@@ -105,7 +59,7 @@ void setup() {
 
   MidiBus.list(); // List all available Midi devices on STDOUT. This will show each device's index and name.
 
-  midiBus = new MidiBus(this, -1, "Microsoft GS Wavetable Synth"); // Create a new MidiBus with no input device and the default Java Sound Synthesizer as the output device.
+  midiBus = new MidiBus(this, -1, mainJson.getString("MIDI_OUTPUT_DEVICE")); // Create a new MidiBus
     
   notes = new ArrayList<Note>();
   controllerChanges = new ArrayList<ControllerChange>();
@@ -114,20 +68,23 @@ void setup() {
   
   genLoopDelay = 0; //int(random(GEN_NOTE_DELAY_MIN, GEN_NOTE_DELAY_MAX));
   
-  configRefreshDelayTime = CONFIG_REFRESH_DELAY;
+  configRefreshDelayTime = mainJson.getInt("CONFIG_REFRESH_DELAY");
 }
 
 void draw() {
     
   // Calculate the delta time, the time since last loop
-  delta = millis() - last;
+  int current = millis();
+  delta = current - last;
+  last = current;
   
-  if(USE_CONFIG_REFRESH) {
+  if(mainJson.getBoolean("USE_CONFIG_REFRESH")) {
+    println(delta);
     configRefreshDelayTime = configRefreshDelayTime - delta;
     
     if(configRefreshDelayTime <= 0) {
       LoadConfig(false);
-      configRefreshDelayTime = CONFIG_REFRESH_DELAY;
+      configRefreshDelayTime = mainJson.getInt("CONFIG_REFRESH_DELAY");
     }
   }
   
@@ -153,37 +110,41 @@ void draw() {
   }
   
   // If using generate note delay, calculate new by sub delta time
-  if(USE_GEN_DELAY && genLoopDelay > 0) {
+  if(noteJson.getBoolean("USE_GEN_DELAY") && genLoopDelay > 0) {
     genLoopDelay = genLoopDelay - delta;
   }
   
   // If generate note delay is zero or below, or not using generate note delay
   // then generate some notes
-  if(genLoopDelay <= 0 || !USE_GEN_DELAY) {  
+  if(genLoopDelay <= 0 || !noteJson.getBoolean("USE_GEN_DELAY")) {  
   
-    int channel = int(random(CHANNEL_MIN, CHANNEL_MAX));
+    int channel = int(random(noteJson.getInt("CHANNEL_MIN"), noteJson.getInt("CHANNEL_MAX")));
     
     // How many new Notes should be generated on this loop
-    int newNumberOfNotes = int(random(GEN_NB_NOTES_MIN, GEN_NB_NOTES_MAX));
+    int newNumberOfNotes = int(random(noteJson.getInt("GEN_NB_NOTES_MIN"), noteJson.getInt("GEN_NB_NOTES_MAX")));
     
     while(newNumberOfNotes > 0) {
       
-      if(!USE_SAME_CHANNEL_FOR_CURRENT_LOOP) { // Change the channel for every new note
-        channel = int(random(CHANNEL_MIN, CHANNEL_MAX));
+      if(!noteJson.getBoolean("USE_SAME_CHANNEL_FOR_CURRENT_LOOP")) { // Change the channel for every new note
+        channel = int(random(noteJson.getInt("CHANNEL_MIN"), noteJson.getInt("CHANNEL_MAX")));
       }
     
-      int pitch = int(random(PITCH_MIN, PITCH_MAX)); // Generate a random pitch value for the new note
-      int velocity = int(random(VELOCITY_MIN, VELOCITY_MAX)); // Generate a random velocity value for the new note
+      int pitch = int(random(noteJson.getInt("PITCH_MIN"), noteJson.getInt("PITCH_MAX"))); // Generate a random pitch value for the new note
+      int velocity = int(random(noteJson.getInt("VELOCITY_MIN"), noteJson.getInt("VELOCITY_MAX"))); // Generate a random velocity value for the new note
       
       // Create a new Note
-      Note newNote = new Note(channel, pitch, velocity, int(random(NOTE_TIME_MIN, NOTE_TIME_MAX)), int(random(NOTE_DELAY_MIN, NOTE_DELAY_MAX)));
+      Note newNote = new Note(channel, 
+        pitch, 
+        velocity, 
+        int(random(noteJson.getInt("NOTE_TIME_MIN"), noteJson.getInt("NOTE_TIME_MAX"))), 
+        int(random(noteJson.getInt("NOTE_DELAY_MIN"), noteJson.getInt("NOTE_DELAY_MAX"))));
       notes.add(newNote);
       
       newNumberOfNotes--;
     }
     
-    if(USE_GEN_DELAY) // If using generate note delay, get a new delay value
-      genLoopDelay = int(random(GEN_NOTE_DELAY_MIN, GEN_NOTE_DELAY_MAX));
+    if(noteJson.getBoolean("USE_GEN_DELAY")) // If using generate note delay, get a new delay value
+      genLoopDelay = int(random(noteJson.getInt("GEN_NOTE_DELAY_MIN"), noteJson.getInt("GEN_NOTE_DELAY_MAX")));
   
   }
 
@@ -196,26 +157,26 @@ void draw() {
     }
   }
   
-  if(USE_CC_GEN) {
+  if(ccJson.getBoolean("USE_CC_GEN")) {
         
     // How many new CC should be generated on this loop
-    int newNumberOfCC = int(random(CC_GEN_NB_MIN, CC_GEN_NB_MAX));
+    int newNumberOfCC = int(random(ccJson.getInt("CC_GEN_NB_MIN"), ccJson.getInt("CC_GEN_NB_MAX")));
     
     while(newNumberOfCC > 0) {
       
-      int channel = int(random(CC_GEN_CHANNEL_MIN, CC_GEN_CHANNEL_MAX));
-      int number = int(random(CC_GEN_NUMBER_MIN, CC_GEN_NUMBER_MAX));
-      int value = int(random(CC_GEN_VALUE_MIN, CC_GEN_VALUE_MAX));
+      int channel = int(random(ccJson.getInt("CC_GEN_CHANNEL_MIN"), ccJson.getInt("CC_GEN_CHANNEL_MAX")));
+      int number = int(random(ccJson.getInt("CC_GEN_NUMBER_MIN"), ccJson.getInt("CC_GEN_NUMBER_MAX")));
+      int value = int(random(ccJson.getInt("CC_GEN_VALUE_MIN"), ccJson.getInt("CC_GEN_VALUE_MAX")));
       
-      ControllerChange cc = new ControllerChange(channel, number, value, int(random(CC_GEN_DELAY_MIN, CC_GEN_DELAY_MAX)));
+      ControllerChange cc = new ControllerChange(channel, number, value, int(random(ccJson.getInt("CC_GEN_DELAY_MIN"), ccJson.getInt("CC_GEN_DELAY_MAX"))));
       controllerChanges.add(cc);
       
       newNumberOfCC--;
     }
   }
   
-  if(USE_GLOBAL_LOOP_DELAY)
-    delay(int(random(MAIN_LOOP_DELAY_MIN, MAIN_LOOP_DELAY_MAX))); //Main loop delay
+  if(noteJson.getBoolean("USE_GLOBAL_LOOP_DELAY"))
+    delay(int(random(noteJson.getInt("MAIN_LOOP_DELAY_MIN"), noteJson.getInt("MAIN_LOOP_DELAY_MAX")))); //Main loop delay
 }
 
 void delay(int time) {
@@ -224,95 +185,67 @@ void delay(int time) {
 }
 
 void LoadConfig(boolean init) {
+  println("hep");
+  JSONObject json;
+  
+  if(init) {
+      mainJson = parseJSONObject(mainConfig);
+      noteJson = parseJSONObject(noteConfig);     
+      ccJson = parseJSONObject(ccConfig);
+  }
+  
   try {
     json = loadJSONObject("main.json");
-    ParseMainConfig(json);
-    
+    ParseJsonConfig(json, mainJson);
+  } catch(Exception e) {
+    if(init) {
+      saveJSONObject(mainJson, "data/main.json");
+    }
+  }
+  
+  try {
     json = loadJSONObject("note.json");
-    ParseNoteConfig(json);
-    
+    ParseJsonConfig(json, noteJson);
+  } catch(Exception e) {
+    if(init) {
+      saveJSONObject(noteJson, "data/note.json");
+    }
+  }
+  
+  try {
     json = loadJSONObject("cc.json");
-    ParseCCConfig(json);
-    
-  } catch (Exception e) {
-    if(init) {    
-      json = parseJSONObject(mainConfig);
-      ParseMainConfig(json);    
-      saveJSONObject(json, "data/main.json");
-      
-      json = parseJSONObject(noteConfig);
-      ParseNoteConfig(json);    
-      saveJSONObject(json, "data/note.json");
-      
-      json = parseJSONObject(ccConfig);
-      ParseCCConfig(json);    
-      saveJSONObject(json, "data/cc.json");
+    ParseJsonConfig(json, ccJson);
+  } catch(Exception e) {
+    if(init) {
+      saveJSONObject(ccJson, "data/cc.json");
     }
   }
 }
 
-void ParseMainConfig(JSONObject json) {
-  if(json != null)
-  {
-    USE_CONFIG_REFRESH = json.getBoolean("USE_CONFIG_REFRESH");
-    CONFIG_REFRESH_DELAY = json.getInt("CONFIG_REFRESH_DELAY");
-  }
-}
-
-void ParseNoteConfig(JSONObject json) {
-  if(json != null)
-  {
-    CHANNEL_MAX = json.getInt("CHANNEL_MAX");
-    CHANNEL_MIN = json.getInt("CHANNEL_MIN");
+void ParseJsonConfig(JSONObject json, JSONObject config) {
+  java.util.Set theKeys = json.keys();
+  
+  for(Object j: theKeys) {      
+    String name = (String)j;
     
-    PITCH_MAX = json.getInt("PITCH_MAX");
-    PITCH_MIN = json.getInt("PITCH_MIN");
+    //println(name);
     
-    VELOCITY_MAX = json.getInt("VELOCITY_MAX");
-    VELOCITY_MIN = json.getInt("VELOCITY_MIN");
+    Object jv = json.get(name);      
+    Object cv = config.get(name);
     
-    NOTE_TIME_MAX = json.getInt("NOTE_TIME_MAX");
-    NOTE_TIME_MIN = json.getInt("NOTE_TIME_MIN");
-    
-    NOTE_DELAY_MAX = json.getInt("NOTE_DELAY_MAX");
-    NOTE_DELAY_MIN = json.getInt("NOTE_DELAY_MIN");
-    
-    GEN_NOTE_DELAY_MAX = json.getInt("GEN_NOTE_DELAY_MAX");
-    GEN_NOTE_DELAY_MIN = json.getInt("GEN_NOTE_DELAY_MIN");
-    
-    GEN_NB_NOTES_MAX = json.getInt("GEN_NB_NOTES_MAX");
-    GEN_NB_NOTES_MIN = json.getInt("GEN_NB_NOTES_MIN");
-    
-    MAIN_LOOP_DELAY_MAX = json.getInt("MAIN_LOOP_DELAY_MAX");
-    MAIN_LOOP_DELAY_MIN = json.getInt("MAIN_LOOP_DELAY_MIN");
-    
-    USE_SAME_CHANNEL_FOR_CURRENT_LOOP = json.getBoolean("USE_SAME_CHANNEL_FOR_CURRENT_LOOP");
-    
-    USE_GLOBAL_LOOP_DELAY = json.getBoolean("USE_GLOBAL_LOOP_DELAY");
-    
-    USE_GEN_DELAY = json.getBoolean("USE_GEN_DELAY");
-  }
-}
-
-void ParseCCConfig(JSONObject json) {
-  if(json != null)
-  {
-    USE_CC_GEN = json.getBoolean("USE_CC_GEN");;
-
-    CC_GEN_NB_MAX = json.getInt("CC_GEN_NB_MAX");;
-    CC_GEN_NB_MIN = json.getInt("CC_GEN_NB_MIN");;
-    
-    CC_GEN_CHANNEL_MAX = json.getInt("CC_GEN_CHANNEL_MAX");;
-    CC_GEN_CHANNEL_MIN = json.getInt("CC_GEN_CHANNEL_MIN");;
-    
-    CC_GEN_NUMBER_MAX = json.getInt("CC_GEN_NUMBER_MAX");;
-    CC_GEN_NUMBER_MIN = json.getInt("CC_GEN_NUMBER_MIN");;
-    
-    CC_GEN_VALUE_MAX = json.getInt("CC_GEN_VALUE_MAX");;
-    CC_GEN_VALUE_MIN = json.getInt("CC_GEN_VALUE_MIN");;
-    
-    CC_GEN_DELAY_MAX = json.getInt("CC_GEN_DELAY_MAX");;
-    CC_GEN_DELAY_MIN = json.getInt("CC_GEN_DELAY_MIN");;
+    if(cv instanceof Integer && jv instanceof Integer && (int)cv != (int)jv) {
+      config.setInt(name, (int)jv);
+      println((int)jv);
+    } else if(cv instanceof Boolean && jv instanceof Boolean && (boolean)cv != (boolean)jv) {
+      config.setBoolean(name, (boolean)jv);
+      println((Boolean)jv);
+    } else if(cv instanceof Float && jv instanceof Float && (float)cv != (float)jv) {
+      config.setFloat(name, (float)jv);
+      println((Float)jv);
+    } else if (cv instanceof String && jv instanceof String && (String)cv != (String)jv) {
+      config.setString(name, (String)jv);
+      println((String)jv);
+    }           
   }
 }
 
