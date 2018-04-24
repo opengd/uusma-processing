@@ -79,7 +79,7 @@ void draw() {
   last = current;
   
   if(mainJson.getBoolean("USE_CONFIG_REFRESH")) {
-    println(delta);
+
     configRefreshDelayTime = configRefreshDelayTime - delta;
     
     if(configRefreshDelayTime <= 0) {
@@ -185,7 +185,7 @@ void delay(int time) {
 }
 
 void LoadConfig(boolean init) {
-  println("hep");
+  
   JSONObject json;
   
   if(init) {
@@ -235,16 +235,16 @@ void ParseJsonConfig(JSONObject json, JSONObject config) {
     
     if(cv instanceof Integer && jv instanceof Integer && (int)cv != (int)jv) {
       config.setInt(name, (int)jv);
-      println((int)jv);
+      println(name + ":change:from:" + (int)cv + ":to:" + (int)jv);
     } else if(cv instanceof Boolean && jv instanceof Boolean && (boolean)cv != (boolean)jv) {
       config.setBoolean(name, (boolean)jv);
-      println((Boolean)jv);
+      println(name + ":change:from:" + (boolean)cv + ":to:" + (boolean)jv);
     } else if(cv instanceof Float && jv instanceof Float && (float)cv != (float)jv) {
       config.setFloat(name, (float)jv);
-      println((Float)jv);
-    } else if (cv instanceof String && jv instanceof String && (String)cv != (String)jv) {
+      println(name + ":change:from:" + (float)cv + ":to:" + (float)jv);
+    } else if (cv instanceof String && jv instanceof String && !((String)cv).equals((String)jv)) {
       config.setString(name, (String)jv);
-      println((String)jv);
+      println(name + ":change:from:" + (String)cv + ":to:" + (String)jv);
     }           
   }
 }
