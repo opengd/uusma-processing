@@ -16,12 +16,12 @@ String mainConfig = "{\"USE_CONFIG_REFRESH\": true," +
     "}";
 
 // Default Note config
-String noteConfig = "{\"CHANNEL_MAX\": 255," +
+String noteConfig = "{\"CHANNEL_MAX\": 6," +
     "\"CHANNEL_MIN\": 0," + 
-    "\"PITCH_MAX\": 100," +
-    "\"PITCH_MIN\": 0," +
-    "\"VELOCITY_MAX\": 255," +
-    "\"VELOCITY_MIN\": 0," +
+    "\"PITCH_MAX\": 82," +
+    "\"PITCH_MIN\": 32," +
+    "\"VELOCITY_MAX\": 127," +
+    "\"VELOCITY_MIN\": 32," +
     "\"NOTE_TIME_MAX\": 10000," +
     "\"NOTE_TIME_MIN\": 2000," +
     "\"NOTE_DELAY_MAX\": 10000," +
@@ -39,13 +39,13 @@ String noteConfig = "{\"CHANNEL_MAX\": 255," +
 
 // Default CC config
 String ccConfig = "{\"USE_CC_GEN\": true," +
-    "\"CC_GEN_NB_MAX\": 2000," +
-    "\"CC_GEN_NB_MIN\": 100," +
+    "\"CC_GEN_NB_MAX\": 20," +
+    "\"CC_GEN_NB_MIN\": 1," +
     "\"CC_GEN_CHANNEL_MAX\": 0," +
-    "\"CC_GEN_CHANNEL_MIN\": 127," +
-    "\"CC_GEN_NUMBER_MAX\": 10," +
-    "\"CC_GEN_NUMBER_MIN\": 0," +
-    "\"CC_GEN_VALUE_MAX\": 90," +
+    "\"CC_GEN_CHANNEL_MIN\": 1," +
+    "\"CC_GEN_NUMBER_MAX\": 48," +
+    "\"CC_GEN_NUMBER_MIN\": 48," +
+    "\"CC_GEN_VALUE_MAX\": 127," +
     "\"CC_GEN_VALUE_MIN\": 0," +
     "\"CC_GEN_DELAY_MAX\": 10000," +
     "\"CC_GEN_DELAY_MIN\": 0" +
