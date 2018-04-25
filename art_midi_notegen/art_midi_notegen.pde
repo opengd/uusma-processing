@@ -7,7 +7,9 @@ ArrayList<ControllerChange> controllerChanges; // A bunch of cc's
 
 JSONObject mainJson, noteJson, ccJson;
 
-int last, delta, genLoopDelay, configRefreshDelayTime;
+int last, piceLast, delta, piceDelta, genLoopDelay, configRefreshDelayTime, playPiceRefreshDelay, mainJsonCheckDelay;
+Integer currentMovmentDelay;
+String currentMovmentName;
 
 // Default Main config
 String mainConfig = "{\"USE_CONFIG_REFRESH\": true," + 
@@ -15,7 +17,9 @@ String mainConfig = "{\"USE_CONFIG_REFRESH\": true," +
     "\"MIDI_OUTPUT_DEVICE\": \"Microsoft GS Wavetable Synth\"," +
     "\"MAIN_LOOP_DELAY_MAX\": 2000," +
     "\"MAIN_LOOP_DELAY_MIN\": 100," +
-    "\"USE_MAIN_LOOP_DELAY\": true" +
+    "\"USE_MAIN_LOOP_DELAY\": true," +
+    "\"PLAY_PICE\": true," +
+    "\"PICE_REFRESH_DELAY\": 1000" +
     "}";
 
 // Default Note config
@@ -54,7 +58,7 @@ String ccConfig = "{\"USE_CC_GEN\": true," +
 void setup() {
   size(400, 400);
   background(0);
-  
+    
   LoadConfig(true); // Load main, note and cc config file from json files or default string config 
 
   MidiBus.list(); // List all available Midi devices on STDOUT. This will show each device's index and name.
@@ -69,6 +73,9 @@ void setup() {
   genLoopDelay = 0; //int(random(GEN_NOTE_DELAY_MIN, GEN_NOTE_DELAY_MAX));
   
   configRefreshDelayTime = mainJson.getInt("CONFIG_REFRESH_DELAY");
+  playPiceRefreshDelay = mainJson.getInt("PICE_REFRESH_DELAY");
+  
+  mainJsonCheckDelay = 5000;
 }
 
 void draw() {
@@ -86,6 +93,22 @@ void draw() {
       LoadConfig(false);
       configRefreshDelayTime = mainJson.getInt("CONFIG_REFRESH_DELAY");
     }
+  } else {
+    mainJsonCheckDelay = mainJsonCheckDelay - delta;
+    if(mainJsonCheckDelay <= 0) {
+      CheckConfigRefreshSettings();
+      mainJsonCheckDelay = 5000;
+    }
+  }
+  
+  if(mainJson.getBoolean("PLAY_PICE")) {
+    
+    playPiceRefreshDelay = playPiceRefreshDelay - delta;
+    
+    if(playPiceRefreshDelay <= 0) {
+      PlayPice();
+      playPiceRefreshDelay = mainJson.getInt("PICE_REFRESH_DELAY");
+    }  
   }
   
   for(int i = 0; i < notes.size(); i++) { // Loop all notes and check time and delay values
@@ -184,6 +207,31 @@ void delay(int time) {
   while (millis () < current+time) Thread.yield();
 }
 
+void CheckConfigRefreshSettings(){
+    try {
+    JSONObject json = loadJSONObject("main.json");
+    
+    if(json.get("USE_CONFIG_REFRESH") != null && json.getBoolean("USE_CONFIG_REFRESH") != mainJson.getBoolean("USE_CONFIG_REFRESH")) {
+      println("USE_CONFIG_REFRESH:change:from:" + mainJson.getBoolean("USE_CONFIG_REFRESH") + ":to:" + json.getBoolean("USE_CONFIG_REFRESH"));
+      mainJson.setBoolean("USE_CONFIG_REFRESH", json.getBoolean("USE_CONFIG_REFRESH"));
+    }
+    
+    if(json.get("PLAY_PICE") != null && json.getBoolean("PLAY_PICE") != mainJson.getBoolean("PLAY_PICE")) {
+      println("PLAY_PICE:change:from:" + mainJson.getBoolean("PLAY_PICE") + ":to:" + json.getBoolean("PLAY_PICE"));
+      mainJson.setBoolean("PLAY_PICE", json.getBoolean("PLAY_PICE"));
+    }    
+  } catch(Exception e) {
+  }
+}
+
+void PlayPice() {
+  try {
+    JSONObject json = loadJSONObject("pice.json");
+    ParseJsonPice(json);
+  } catch(Exception e) {
+  }
+}
+
 void LoadConfig(boolean init) {
   
   JSONObject json;
@@ -220,6 +268,82 @@ void LoadConfig(boolean init) {
       saveJSONObject(ccJson, "data/cc.json");
     }
   }
+}
+
+void ParseJsonPice(JSONObject pice) {
+  java.util.Set piceKeys = pice.keys();
+  
+  if(piceKeys.size() > 0 && currentMovmentDelay == null) {
+    currentMovmentDelay = GetNextMovmentDelay(piceKeys, currentMovmentDelay);
+    currentMovmentName = "" + currentMovmentDelay;
+    
+    println("currentMovmentName: " + currentMovmentName);
+    
+    piceDelta = 0;
+    piceLast = millis();
+  }
+  
+  int m = millis();
+  piceDelta = m - piceLast;
+  piceLast = m;
+  
+  if(piceKeys.size() > 0) {
+    
+    currentMovmentDelay = currentMovmentDelay - piceDelta;
+    //println("currentMovmentDelay: " + currentMovmentDelay);
+    
+    if(currentMovmentDelay <= 0) {
+
+      JSONObject movement = (JSONObject)pice.get(currentMovmentName);
+      
+      JSONObject json = movement.getJSONObject("main");
+      if(json != null)
+        ParseJsonConfig(json, mainJson);
+      json = movement.getJSONObject("note");
+      if(json != null)
+        ParseJsonConfig(json, noteJson);
+      json = movement.getJSONObject("cc");
+      if(json != null)
+        ParseJsonConfig(json, ccJson);
+      
+      int currentDelay = Integer.parseInt(currentMovmentName);
+      int next = GetNextMovmentDelay(piceKeys, currentDelay);
+       
+      currentMovmentDelay = (next < currentDelay) ? next : abs(next - currentDelay);
+      
+      currentMovmentName = "" + next;
+      
+      println("new:movment:name:" + currentMovmentName + ":delay:" + currentMovmentDelay);
+    }
+  } 
+}
+
+int GetNextMovmentDelay(java.util.Set movments, Integer current) {
+  
+  Integer next = null;
+  
+  if(current != null)
+    next = current;
+  
+  for(Object j: movments) {
+    int n = Integer.parseInt((String)j);
+    if(movments.size() == 1) {
+      return n;
+    } else if(current == null && next == null) {
+      next = n;
+    } else if(current == null && n < next) {
+      next = n;
+    } else if (current != null && n > current && n < next) {
+      next = n;
+    } else if (current != null && n > current) {
+      next = n;
+    }
+  }
+  
+  if(next == null || next == current)
+    next = GetNextMovmentDelay(movments, null);
+  
+  return next;
 }
 
 void ParseJsonConfig(JSONObject json, JSONObject config) {
