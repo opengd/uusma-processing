@@ -7,7 +7,7 @@ ArrayList<ControllerChange> controllerChanges; // A bunch of cc's
 
 JSONObject mainJson, noteJson, ccJson;
 
-int last, piceLast, delta, piceDelta, genLoopDelay, configRefreshDelayTime, playPiceRefreshDelay, mainJsonCheckDelay;
+int last, pieceLast, delta, pieceDelta, genLoopDelay, configRefreshDelayTime, playPieceRefreshDelay, mainJsonCheckDelay;
 Integer currentMovmentDelay;
 String currentMovmentName;
 
@@ -18,8 +18,8 @@ String mainConfig = "{\"USE_CONFIG_REFRESH\": true," +
     "\"MAIN_LOOP_DELAY_MAX\": 2000," +
     "\"MAIN_LOOP_DELAY_MIN\": 100," +
     "\"USE_MAIN_LOOP_DELAY\": true," +
-    "\"PLAY_PICE\": true," +
-    "\"PICE_REFRESH_DELAY\": 1000" +
+    "\"PLAY_PIECE\": true," +
+    "\"PIECE_REFRESH_DELAY\": 1000" +
     "}";
 
 // Default Note config
@@ -73,7 +73,7 @@ void setup() {
   genLoopDelay = 0; //int(random(GEN_NOTE_DELAY_MIN, GEN_NOTE_DELAY_MAX));
   
   configRefreshDelayTime = mainJson.getInt("CONFIG_REFRESH_DELAY");
-  playPiceRefreshDelay = mainJson.getInt("PICE_REFRESH_DELAY");
+  playPieceRefreshDelay = mainJson.getInt("PIECE_REFRESH_DELAY");
   
   mainJsonCheckDelay = 5000;
 }
@@ -101,13 +101,13 @@ void draw() {
     }
   }
   
-  if(mainJson.getBoolean("PLAY_PICE")) {
+  if(mainJson.getBoolean("PLAY_PIECE")) {
     
-    playPiceRefreshDelay = playPiceRefreshDelay - delta;
+    playPieceRefreshDelay = playPieceRefreshDelay - delta;
     
-    if(playPiceRefreshDelay <= 0) {
-      PlayPice();
-      playPiceRefreshDelay = mainJson.getInt("PICE_REFRESH_DELAY");
+    if(playPieceRefreshDelay <= 0) {
+      PlayPiece();
+      playPieceRefreshDelay = mainJson.getInt("PIECE_REFRESH_DELAY");
     }  
   }
   
@@ -216,18 +216,18 @@ void CheckConfigRefreshSettings(){
       mainJson.setBoolean("USE_CONFIG_REFRESH", json.getBoolean("USE_CONFIG_REFRESH"));
     }
     
-    if(json.get("PLAY_PICE") != null && json.getBoolean("PLAY_PICE") != mainJson.getBoolean("PLAY_PICE")) {
-      println("PLAY_PICE:change:from:" + mainJson.getBoolean("PLAY_PICE") + ":to:" + json.getBoolean("PLAY_PICE"));
-      mainJson.setBoolean("PLAY_PICE", json.getBoolean("PLAY_PICE"));
+    if(json.get("PLAY_PIECE") != null && json.getBoolean("PLAY_PIECE") != mainJson.getBoolean("PLAY_PIECE")) {
+      println("PLAY_PIECE:change:from:" + mainJson.getBoolean("PLAY_PIECE") + ":to:" + json.getBoolean("PLAY_PIECE"));
+      mainJson.setBoolean("PLAY_PIECE", json.getBoolean("PLAY_PIECE"));
     }    
   } catch(Exception e) {
   }
 }
 
-void PlayPice() {
+void PlayPiece() {
   try {
-    JSONObject json = loadJSONObject("pice.json");
-    ParseJsonPice(json);
+    JSONObject json = loadJSONObject("piece.json");
+    ParseJsonPiece(json);
   } catch(Exception e) {
   }
 }
@@ -270,31 +270,31 @@ void LoadConfig(boolean init) {
   }
 }
 
-void ParseJsonPice(JSONObject pice) {
-  java.util.Set piceKeys = pice.keys();
+void ParseJsonPiece(JSONObject piece) {
+  java.util.Set pieceKeys = piece.keys();
   
-  if(piceKeys.size() > 0 && currentMovmentDelay == null) {
-    currentMovmentDelay = GetNextMovmentDelay(piceKeys, currentMovmentDelay);
+  if(pieceKeys.size() > 0 && currentMovmentDelay == null) {
+    currentMovmentDelay = GetNextMovmentDelay(pieceKeys, currentMovmentDelay);
     currentMovmentName = "" + currentMovmentDelay;
     
     println("currentMovmentName: " + currentMovmentName);
     
-    piceDelta = 0;
-    piceLast = millis();
+    pieceDelta = 0;
+    pieceLast = millis();
   }
   
   int m = millis();
-  piceDelta = m - piceLast;
-  piceLast = m;
+  pieceDelta = m - pieceLast;
+  pieceLast = m;
   
-  if(piceKeys.size() > 0) {
+  if(pieceKeys.size() > 0) {
     
-    currentMovmentDelay = currentMovmentDelay - piceDelta;
+    currentMovmentDelay = currentMovmentDelay - pieceDelta;
     //println("currentMovmentDelay: " + currentMovmentDelay);
     
     if(currentMovmentDelay <= 0) {
 
-      JSONObject movement = (JSONObject)pice.get(currentMovmentName);
+      JSONObject movement = (JSONObject)piece.get(currentMovmentName);
       
       JSONObject json = movement.getJSONObject("main");
       if(json != null)
@@ -307,7 +307,7 @@ void ParseJsonPice(JSONObject pice) {
         ParseJsonConfig(json, ccJson);
       
       int currentDelay = Integer.parseInt(currentMovmentName);
-      int next = GetNextMovmentDelay(piceKeys, currentDelay);
+      int next = GetNextMovmentDelay(pieceKeys, currentDelay);
        
       currentMovmentDelay = (next < currentDelay) ? next : abs(next - currentDelay);
       

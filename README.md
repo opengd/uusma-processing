@@ -17,10 +17,10 @@ The note.json holds settings for the radom midi note generator.
 ## data/cc.json
 The cc.json holds settings for the random Controller Change (CC) generator.
 
-## data/pice.json
-The pice.json is use to compose movments, change config based on a time value.
+## data/piece.json
+The piece.json is use to compose movments, change config based on a time value.
 
-Example what a short pice.json can look like:
+Example what a short piece.json can look like:
 
 ```javascript
 {
@@ -47,7 +47,7 @@ Example what a short pice.json can look like:
 ```
 This will init a delay of `10000`ms and then change the `PITCH_MAX`. Next it will take a new delay of 15000-10000=5000ms and change the pitch again. When it reach the end it will start over, so it will init the `10000`ms delay again.
 
-Be aware if `USE_CONFIG_REFRESH` is set to `true` then it will change settings found in main/note/cc json at the same time. You can set `USE_CONFIG_REFRESH` to `false` or remove any used settings in pice from the other config files or just let i happen.
+Be aware if `USE_CONFIG_REFRESH` is set to `true` then it will change settings found in main/note/cc json at the same time. You can set `USE_CONFIG_REFRESH` to `false` or remove any used settings in piece from the other config files or just let i happen.
 
 
 # Dependencies
