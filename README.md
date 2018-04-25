@@ -17,6 +17,39 @@ The note.json holds settings for the radom midi note generator.
 ## data/cc.json
 The cc.json holds settings for the random Controller Change (CC) generator.
 
+## data/pice.json
+The pice.json is use to compose movments, change config based on a time value.
+
+Example what a short pice.json can look like:
+
+```javascript
+{
+    "10000": {
+        "note" : {
+            "PITCH_MAX": 154
+        }
+    },
+    "15000": {
+        "note" : {
+            "PITCH_MIN": 1,
+            "PITCH_MAX": 32
+        }
+    },
+    "23000": {
+        "note" : {
+            "VELOCITY_MAX": 123
+        },
+        "cc" : {
+            "CC_GEN_DELAY_MAX": 5000
+        }
+    }
+}
+```
+This will init a delay of `10000`ms and then change the `PITCH_MAX`. Next it will take a new delay of 15000-10000=5000ms and change the pitch again. When it reach the end it will start over, so it will init the `10000`ms delay again.
+
+Be aware if `USE_CONFIG_REFRESH` is set to `true` then it will change settings found in main/note/cc json at the same time. You can set `USE_CONFIG_REFRESH` to `false` or remove any used settings in pice from the other config files or just let i happen.
+
+
 # Dependencies
 art-midi-notegen is using Processing to run and the MidiBus library to create midi data. You can install MidiBus by using the in Processing IDE build in library manager (Sketch->Import Library->Add Library). 
 
