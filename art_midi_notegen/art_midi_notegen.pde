@@ -12,7 +12,10 @@ int last, delta, genLoopDelay, configRefreshDelayTime;
 // Default Main config
 String mainConfig = "{\"USE_CONFIG_REFRESH\": true," + 
     "\"CONFIG_REFRESH_DELAY\": 10000," +
-    "\"MIDI_OUTPUT_DEVICE\": \"Microsoft GS Wavetable Synth\"" +
+    "\"MIDI_OUTPUT_DEVICE\": \"Microsoft GS Wavetable Synth\"," +
+    "\"MAIN_LOOP_DELAY_MAX\": 2000," +
+    "\"MAIN_LOOP_DELAY_MIN\": 100," +
+    "\"USE_MAIN_LOOP_DELAY\": true" +
     "}";
 
 // Default Note config
@@ -30,10 +33,7 @@ String noteConfig = "{\"CHANNEL_MAX\": 6," +
     "\"GEN_NOTE_DELAY_MIN\": 0," +
     "\"GEN_NB_NOTES_MAX\": 20," +
     "\"GEN_NB_NOTES_MIN\": 0," +
-    "\"MAIN_LOOP_DELAY_MAX\": 2000," +
-    "\"MAIN_LOOP_DELAY_MIN\": 100," +
     "\"USE_SAME_CHANNEL_FOR_CURRENT_LOOP\": true," +
-    "\"USE_GLOBAL_LOOP_DELAY\": true," +
     "\"USE_GEN_DELAY\": true" +
     "}";
 
@@ -175,8 +175,8 @@ void draw() {
     }
   }
   
-  if(noteJson.getBoolean("USE_GLOBAL_LOOP_DELAY"))
-    delay(int(random(noteJson.getInt("MAIN_LOOP_DELAY_MIN"), noteJson.getInt("MAIN_LOOP_DELAY_MAX")))); //Main loop delay
+  if(mainJson.getBoolean("USE_MAIN_LOOP_DELAY"))
+    delay(int(random(mainJson.getInt("MAIN_LOOP_DELAY_MIN"), mainJson.getInt("MAIN_LOOP_DELAY_MAX")))); //Main loop delay
 }
 
 void delay(int time) {
