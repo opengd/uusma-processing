@@ -19,7 +19,8 @@ String mainConfig = "{\"USE_CONFIG_REFRESH\": true," +
     "\"MAIN_LOOP_DELAY_MIN\": 100," +
     "\"USE_MAIN_LOOP_DELAY\": true," +
     "\"PLAY_PIECE\": true," +
-    "\"PIECE_REFRESH_DELAY\": 1000" +
+    "\"PIECE_REFRESH_DELAY\": 1000," +
+    "\"CURRENT_PIECE\": \"piece.json\"" +
     "}";
 
 // Default Note config
@@ -226,7 +227,7 @@ void CheckConfigRefreshSettings(){
 
 void PlayPiece() {
   try {
-    JSONObject json = loadJSONObject("piece.json");
+    JSONObject json = loadJSONObject(mainJson.getString("CURRENT_PIECE"));
     ParseJsonPiece(json);
   } catch(Exception e) {
   }
