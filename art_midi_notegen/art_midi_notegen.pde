@@ -294,18 +294,8 @@ void ParseJsonPiece(JSONObject piece) {
     //println("currentMovmentDelay: " + currentMovmentDelay);
     
     if(currentMovmentDelay <= 0) {
-
-      JSONObject movement = (JSONObject)piece.get(currentMovmentName);
       
-      JSONObject json = movement.getJSONObject("main");
-      if(json != null)
-        ParseJsonConfig(json, mainJson);
-      json = movement.getJSONObject("note");
-      if(json != null)
-        ParseJsonConfig(json, noteJson);
-      json = movement.getJSONObject("cc");
-      if(json != null)
-        ParseJsonConfig(json, ccJson);
+      ParseMovment(piece, currentMovmentName);
       
       int currentDelay = Integer.parseInt(currentMovmentName);
       int next = GetNextMovmentDelay(pieceKeys, currentDelay);
@@ -317,6 +307,41 @@ void ParseJsonPiece(JSONObject piece) {
       println("new:movment:name:" + currentMovmentName + ":delay:" + currentMovmentDelay);
     }
   } 
+}
+
+void ParseMovment(JSONObject piece, String movmentName) {
+  JSONObject movement = (JSONObject)piece.get(movmentName);
+  
+  println("parse:movment:" + movmentName);
+  
+  JSONObject json = movement.getJSONObject("main");
+  if(json != null)
+    ParseJsonConfig(json, mainJson);
+  json = movement.getJSONObject("note");
+  if(json != null)
+    ParseJsonConfig(json, noteJson);
+  json = movement.getJSONObject("cc");
+  if(json != null)
+    ParseJsonConfig(json, ccJson);
+  
+  JSONArray ja = movement.getJSONArray("macro");
+  if(ja != null && ja.size() > 0) {
+    
+    for(int i = 0; i < ja.size(); i++) {
+      JSONObject macro = ja.getJSONObject(i);
+      
+      if(macro.getString("source") != null) {
+        try {
+          JSONObject mo = loadJSONObject(macro.getString("source"));
+          JSONArray doMacros = macro.getJSONArray("do");
+          for(int m = 0; m < doMacros.size(); m++) {
+            ParseMovment(mo, doMacros.getString(m));
+          }
+        } catch(Exception e) {
+        }
+      }
+    }    
+  }
 }
 
 int GetNextMovmentDelay(java.util.Set movments, Integer current) {
