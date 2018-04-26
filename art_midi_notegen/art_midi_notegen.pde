@@ -7,9 +7,12 @@ ArrayList<ControllerChange> controllerChanges; // A bunch of cc's
 
 JSONObject mainJson, noteJson, ccJson;
 
-int last, pieceLast, delta, pieceDelta, genLoopDelay, configRefreshDelayTime, playPieceRefreshDelay, mainJsonCheckDelay;
-Integer currentMovmentDelay;
+int last, pieceLast, delta, pieceDelta, 
+  genLoopDelay, configRefreshDelayTime, playPieceRefreshDelay, playCompositionRefreshDelay, mainJsonCheckDelay;
+Integer currentMovmentDelay, compositionJmpCounter, compositionCurrentRow;
 String currentMovmentName;
+float compositionDelta, compositionLast;
+Float currentCompositionDelay;
 
 // Default Main config
 String mainConfig = "{\"USE_CONFIG_REFRESH\": true," + 
@@ -20,7 +23,10 @@ String mainConfig = "{\"USE_CONFIG_REFRESH\": true," +
     "\"USE_MAIN_LOOP_DELAY\": true," +
     "\"PLAY_PIECE\": true," +
     "\"PIECE_REFRESH_DELAY\": 1000," +
-    "\"CURRENT_PIECE\": \"piece.json\"" +
+    "\"CURRENT_PIECE\": \"piece.json\"," +
+    "\"PLAY_COMPOSITION\": true," +
+    "\"COMPOSITION_REFRESH_DELAY\": 1000," +
+    "\"CURRENT_COMPOSITION\": \"my.composition\"" +
     "}";
 
 // Default Note config
@@ -46,8 +52,8 @@ String noteConfig = "{\"CHANNEL_MAX\": 6," +
 String ccConfig = "{\"USE_CC_GEN\": true," +
     "\"CC_GEN_NB_MAX\": 20," +
     "\"CC_GEN_NB_MIN\": 1," +
-    "\"CC_GEN_CHANNEL_MAX\": 0," +
-    "\"CC_GEN_CHANNEL_MIN\": 1," +
+    "\"CC_GEN_CHANNEL_MAX\": 1," +
+    "\"CC_GEN_CHANNEL_MIN\": 0," +
     "\"CC_GEN_NUMBER_MAX\": 48," +
     "\"CC_GEN_NUMBER_MIN\": 48," +
     "\"CC_GEN_VALUE_MAX\": 127," +
@@ -75,6 +81,7 @@ void setup() {
   
   configRefreshDelayTime = mainJson.getInt("CONFIG_REFRESH_DELAY");
   playPieceRefreshDelay = mainJson.getInt("PIECE_REFRESH_DELAY");
+  playCompositionRefreshDelay = mainJson.getInt("COMPOSITION_REFRESH_DELAY");
   
   mainJsonCheckDelay = 5000;
 }
@@ -109,6 +116,16 @@ void draw() {
     if(playPieceRefreshDelay <= 0) {
       PlayPiece();
       playPieceRefreshDelay = mainJson.getInt("PIECE_REFRESH_DELAY");
+    }  
+  }
+  
+  if(mainJson.getBoolean("PLAY_COMPOSITION")) {
+    
+    playCompositionRefreshDelay = playCompositionRefreshDelay - delta;
+    
+    if(playCompositionRefreshDelay <= 0) {
+      PlayComposition ();
+      playCompositionRefreshDelay = mainJson.getInt("COMPOSITION_REFRESH_DELAY");
     }  
   }
   
@@ -225,6 +242,15 @@ void CheckConfigRefreshSettings(){
   }
 }
 
+void PlayComposition() {
+  try {
+    String[] composition = loadStrings(mainJson.getString("CURRENT_COMPOSITION"));
+    if(composition.length > 0)
+      ParseComposition(composition);
+  } catch(Exception e) {
+  }
+}
+
 void PlayPiece() {
   try {
     JSONObject json = loadJSONObject(mainJson.getString("CURRENT_PIECE"));
@@ -267,6 +293,86 @@ void LoadConfig(boolean init) {
   } catch(Exception e) {
     if(init) {
       saveJSONObject(ccJson, "data/cc.json");
+    }
+  }
+}
+
+void ParseComposition(String[] composition) {
+    
+  String currentMacro = null;
+  
+  for(String row: composition) {
+    String[] list = split(row, ' ');
+        
+    if(list[0].equals("macro")) {
+      currentMacro = list[1];
+    } else {
+            
+      int time;
+      
+      try {
+        time = Integer.parseInt(list[0]);
+      } catch (NumberFormatException ex) {
+        time = -1;
+      }
+      
+      if(currentCompositionDelay == null && time >= 0) {
+        compositionDelta = 0;
+        compositionLast = millis() * 0.001;
+        
+        if(compositionCurrentRow != null) {
+          currentCompositionDelay = (float)abs(time - compositionCurrentRow);
+        } else {
+          currentCompositionDelay = (float)time;
+        }
+        
+        compositionCurrentRow = time;
+        println("currentCompositionDelay: " + currentCompositionDelay);
+        println("compositionCurrentRow: " + compositionCurrentRow);
+      }
+      
+      if(currentCompositionDelay != null) {
+        float m = millis() * 0.001;
+        compositionDelta = m - compositionLast;
+        compositionLast = m;
+        
+        currentCompositionDelay = currentCompositionDelay - compositionDelta;
+        //println("currentCompositionDelay: " + currentCompositionDelay);
+      }
+      
+      if(time >= 0 && currentCompositionDelay <= 0 && time == compositionCurrentRow && list.length > 1) {
+        try {
+          JSONObject json = loadJSONObject(currentMacro);
+          
+          for(int i = 1; i < list.length; i++) {
+            ParseMovment(json, list[i]);
+          }              
+        } catch(Exception e) {}
+        
+        currentCompositionDelay = null;
+      }
+      else if (time == -1 && currentCompositionDelay == null && list.length > 1 && list[0].equals("jmp")) {          
+        if(compositionJmpCounter != null)
+          compositionJmpCounter--;
+        
+        if(compositionJmpCounter == null || compositionJmpCounter > 0) {
+          int jmpTo = Integer.parseInt(list[1]);
+                    
+          currentCompositionDelay = (float)jmpTo;
+          compositionCurrentRow = jmpTo;
+                    
+          if(compositionJmpCounter == null) {       
+            if(list.length > 2)
+              compositionJmpCounter = Integer.parseInt(list[2]);
+            else
+              compositionJmpCounter = 1;
+          }
+          println("jmpTo:" + jmpTo + ":compositionJmpCounter:" + compositionJmpCounter);
+        } else if (compositionJmpCounter != null && compositionJmpCounter <= 0) {
+          compositionJmpCounter = null;
+        }
+      }
+      
     }
   }
 }
