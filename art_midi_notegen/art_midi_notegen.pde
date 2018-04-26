@@ -302,8 +302,17 @@ void ParseComposition(String[] composition) {
   String currentMacro = null;
   
   for(String row: composition) {
-    String[] list = split(row, ' ');
-        
+    String[] unclean = split(row, ' ');
+    
+    StringList clean = new StringList();
+    
+    for(String s: unclean)
+      if(s.length() > 0) 
+        clean.append(s);
+    
+    String[] list = clean.array();
+    
+    
     if(list[0].equals("macro")) {
       currentMacro = list[1];
     } else {
