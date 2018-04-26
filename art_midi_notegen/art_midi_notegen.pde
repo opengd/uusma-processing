@@ -237,7 +237,12 @@ void CheckConfigRefreshSettings(){
     if(json.get("PLAY_PIECE") != null && json.getBoolean("PLAY_PIECE") != mainJson.getBoolean("PLAY_PIECE")) {
       println("PLAY_PIECE:change:from:" + mainJson.getBoolean("PLAY_PIECE") + ":to:" + json.getBoolean("PLAY_PIECE"));
       mainJson.setBoolean("PLAY_PIECE", json.getBoolean("PLAY_PIECE"));
-    }    
+    }
+    
+    if(json.get("PLAY_COMPOSITION") != null && json.getBoolean("PLAY_COMPOSITION") != mainJson.getBoolean("PLAY_COMPOSITION")) {
+      println("PLAY_COMPOSITION:change:from:" + mainJson.getBoolean("PLAY_COMPOSITION") + ":to:" + json.getBoolean("PLAY_COMPOSITION"));
+      mainJson.setBoolean("PLAY_COMPOSITION", json.getBoolean("PLAY_COMPOSITION"));
+    } 
   } catch(Exception e) {
   }
 }
@@ -354,6 +359,12 @@ void ParseComposition(String[] composition) {
           JSONObject json = loadJSONObject(currentMacro);
           
           for(int i = 1; i < list.length; i++) {
+            
+            // Check for comments
+            String comCheck = list[i].substring(0, 2);
+            if(comCheck.equals("//")) 
+              break;
+           
             ParseMovment(json, list[i]);
           }              
         } catch(Exception e) {}
@@ -374,7 +385,7 @@ void ParseComposition(String[] composition) {
             if(list.length > 2)
               compositionJmpCounter = Integer.parseInt(list[2]);
             else
-              compositionJmpCounter = 1;
+              compositionJmpCounter = 0;
           }
           println("jmpTo:" + jmpTo + ":compositionJmpCounter:" + compositionJmpCounter);
         } else if (compositionJmpCounter != null && compositionJmpCounter <= 0) {
