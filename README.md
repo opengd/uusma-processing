@@ -1,7 +1,7 @@
 # art-midi-notegen
-Artistically generate random midi notes and cc. The object is to make the notes perform as unsync as possible an by this art-midi-notegen is not performance optimized, as missing a beat is not issue.
+Artistically generate random midi notes and CC. The object is to make the notes perform as unsyncronized as possible and by this art-midi-notegen is not performance optimized, as missing a beat is not an issue.
 
-As it is almost just about sound (music) the art-midi-notegen will not currently show any visual details in the main window, just deep black.
+As it is almost just about sound (and/or music) the art-midi-notegen will not currently show any visual details in the main window, just deep black.
 
 # Settings
 On application start art-midi-notegen will check if there is any config files in folder "./data". art-midi-notegen is using three config files to seperate settings, main.json, note.json and cc.json. If the files do not exist on start they will be created using default settings.
@@ -47,9 +47,9 @@ Example what a short piece.json can look like:
     }
 }
 ```
-This will init a delay of `10000`ms and then change the `PITCH_MAX`. Next it will take a new delay of 15000-10000=5000ms and change the pitch again. When it reach the end it will start over, so it will init the `10000`ms delay again.
+This will init a delay of `10000`ms and then change the `PITCH_MAX`. Next it will take a new delay of 15000-10000=5000ms and change the pitch again. When it reaches the end it will start over and so it will init the `10000`ms delay again.
 
-Be aware if `USE_CONFIG_REFRESH` is set to `true` then it will change settings found in main/note/cc json at the same time. You can set `USE_CONFIG_REFRESH` to `false` or remove any used settings in piece from the other config files or just let i happen.
+Be aware if `USE_CONFIG_REFRESH` is set to `true`, then it will change settings found in main/note/cc json at the same time. You can set `USE_CONFIG_REFRESH` to `false`, or remove any used settings in piece from the other config files or just let i happen.
 
 ## Macro, pre defined configs
 Macros can be used in the a piece file or in composer file (se below for more info). It makes it easier to re-use config changes and for the readability.
@@ -74,7 +74,7 @@ A json macro files can look like this:
     }
 }
 ```
-Almost the same as a piece file it just use named blocks instead of a time value.
+Almost the same as a piece file - it just uses named blocks instead of a time value.
 
 To use it a piece file you do like this:
 ```javascript
@@ -109,9 +109,9 @@ To use it a piece file you do like this:
 You create a new `array` block call `macro` and inside the block you can but as many object macro objects as you wish. The macro object need a `source`, the file where the macros are defined and a `do` to point which macros in that file that should be called.
 
 # Composition
-A composition file is own file format to make it simple to compose using pre defined macros.
+A composition file is it's own file format made to make it simple to compose using pre defined macros.
 
-A example of a composition file:
+An example of a composition file:
 ```
 # This my first composition
 macro macro.json
@@ -121,22 +121,22 @@ macro macro.json
 jmp 10 1
 20 hello
 22 world
-# This line will be ignored and also any empty lines and lines that have nothing usefull
+# This line will be ignored and so will any empty lines and lines that have nothing useful
 
 
 30 hello
 ```
-The composition files starts by define which macro file to use. Then a time value in seconds and one or many named config from the macro file to invoke at that delay value. So the `hello` config changes from `macro.json` will be run after a delay of 5 seconds in this example. It will the go to the next row a pick a new delay. 
+The composition files starts by define which macro file to use. Then a time value in seconds and one or many named configs from the macro file to invoke at that delay value. And so the `hello` config changes from `macro.json` will be run after a delay of 5 seconds in this example. It will the go to the next row and pick a new delay. 
 
-When the program reach `jmp` it will jump to the defined delay value, in this case to `10` and second numbers is for how many times it should loop. So in this case two times as it also using 0 as one jump. If no loop counter value is defined it will loop once.
+When the program reaches `jmp` it will jump to the defined delay value, in this case to `10`. The next following numbers are for how many times it should loop. In this case: two times, as it's also using 0 as one jump. If no loop counter value is defined it will loop once.
 
-Safe comments is using `#` at the start of the comment line.
+Safe comments are using `#` at the start of the comment line.
 
 # Dependencies
-art-midi-notegen is using Processing to run and the MidiBus library to create midi data. You can install MidiBus by using the in Processing IDE build in library manager (Sketch->Import Library->Add Library). 
+art-midi-notegen is using Processing to run and the MidiBus library to create midi data. You can install MidiBus by using the  Processing IDE built in library manager (Sketch->Import Library->Add Library). 
 
-Processing
+Processing:
 https://processing.org/
 
-MidiBus
+MidiBus:
 http://www.smallbutdigital.com/projects/themidibus/
