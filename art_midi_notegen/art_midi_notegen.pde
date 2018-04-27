@@ -26,7 +26,7 @@ String mainConfig = "{\"USE_CONFIG_REFRESH\": true," +
     "\"CURRENT_PIECE\": \"piece.json\"," +
     "\"PLAY_COMPOSITION\": true," +
     "\"COMPOSITION_REFRESH_DELAY\": 1000," +
-    "\"CURRENT_COMPOSITION\": \"my.composition\"" +
+    "\"CURRENT_COMPOSITION\": \"composition.md\"" +
     "}";
 
 // Default Note config
@@ -253,6 +253,7 @@ void PlayComposition() {
     if(composition.length > 0)
       ParseComposition(composition);
   } catch(Exception e) {
+    println(e);
   }
 }
 
@@ -303,11 +304,14 @@ void LoadConfig(boolean init) {
 }
 
 void ParseComposition(String[] composition) {
-    
+  
   String currentMacro = null;
   
-  for(String row: composition) {
-    String[] unclean = split(row, ' ');
+  Boolean insideComposition = false;
+  
+  for(int rowIndex = 0; rowIndex < composition.length; rowIndex++) {
+    //println(rowIndex + " : " + composition[rowIndex]);
+    String[] unclean = split(composition[rowIndex], ' ');
     
     StringList clean = new StringList();
     
@@ -315,12 +319,17 @@ void ParseComposition(String[] composition) {
       if(s.length() > 0) 
         clean.append(s);
     
-    String[] list = clean.array();
+    String[] list = clean.array();    
     
-    
-    if(list[0].equals("macro")) {
+    if(list.length > 1 && list[0].equals("```") && list[1].toLowerCase().equals("composition") && !insideComposition) {
+      insideComposition = true;
+      //println("insideComposition: " + insideComposition);
+    } else if (list.length > 0 && list[0].equals("```") && insideComposition) {
+      insideComposition = false;
+      //println("insideComposition: " + insideComposition);
+    } else if(insideComposition && list.length > 0 && list[0].equals("macro")) {
       currentMacro = list[1];
-    } else {
+    } else if (list.length > 0 && insideComposition){
             
       int time;
       
@@ -370,27 +379,43 @@ void ParseComposition(String[] composition) {
         } catch(Exception e) {}
         
         currentCompositionDelay = null;
-      }
-      else if (time == -1 && currentCompositionDelay == null && list.length > 1 && list[0].equals("jmp")) {          
+      } else if (time == -1 && currentCompositionDelay == null && list.length > 1 && list[0].equals("jmp")) {          
         if(compositionJmpCounter != null)
           compositionJmpCounter--;
         
         if(compositionJmpCounter == null || compositionJmpCounter > 0) {
-          int jmpTo = Integer.parseInt(list[1]);
-                    
+          int jmpTo = 0;
+          try {
+            jmpTo = Integer.parseInt(list[1]);
+          } catch(NumberFormatException ex) {
+            println("Could not parse jump time value: " + list[1]);
+            continue;
+          }
+                              
           currentCompositionDelay = (float)jmpTo;
           compositionCurrentRow = jmpTo;
                     
           if(compositionJmpCounter == null) {       
             if(list.length > 2)
-              compositionJmpCounter = Integer.parseInt(list[2]);
+              try {
+                compositionJmpCounter = Integer.parseInt(list[2]);
+              } catch(NumberFormatException ex) {
+                compositionJmpCounter = 1;
+              }
+              
             else
-              compositionJmpCounter = 0;
+              compositionJmpCounter = 1;
           }
           println("jmpTo:" + jmpTo + ":compositionJmpCounter:" + compositionJmpCounter);
         } else if (compositionJmpCounter != null && compositionJmpCounter <= 0) {
           compositionJmpCounter = null;
         }
+      }
+      
+      //println("(rowIndex+1): " + (rowIndex+2) + ":composition.length:" + composition.length);
+      if(currentCompositionDelay == null && (rowIndex+2) == composition.length) {
+        compositionCurrentRow = null;
+        println("EOF");
       }
       
     }
