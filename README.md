@@ -126,7 +126,7 @@ jmp 10 1
 
 30 hello
 ```
-The composition files starts by define which macro file to use. Then a time value in seconds and one or many named configs from the macro file to invoke at that delay value. And so the `hello` config changes from `macro.json` will be run after a delay of 5 seconds in this example. It will the go to the next row and pick a new delay. 
+The composition files starts by defining which macro file to use. Then a time value in seconds and one or many named configs from the macro file to invoke at that delay value. And so the `hello` config changes from `macro.json` will be run after a delay of 5 seconds in this example. It will the go to the next row and pick a new delay. 
 
 When the program reaches `jmp` it will jump to the defined delay value, in this case to `10`. The next following numbers are for how many times it should loop. In this case: two times, as it's also using 0 as one jump. If no loop counter value is defined it will loop once.
 
