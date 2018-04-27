@@ -361,8 +361,8 @@ void ParseComposition(String[] composition) {
           for(int i = 1; i < list.length; i++) {
             
             // Check for comments
-            String comCheck = list[i].substring(0, 2);
-            if(comCheck.equals("//")) 
+            String comCheck = list[i].substring(0, 1);
+            if(comCheck.equals("#")) 
               break;
            
             ParseMovment(json, list[i]);

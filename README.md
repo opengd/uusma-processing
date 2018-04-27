@@ -113,14 +113,15 @@ A composition file is own file format to make it simple to compose using pre def
 
 A example of a composition file:
 ```
+# This my first composition
 macro macro.json
 5 hello
 10 world
-15 hello world //This comment will be ignored
+15 hello world # This comment will be ignored
 jmp 10 1
 20 hello
 22 world
-// This line will be ignored and also any empty lines and lines that have nothing usefull
+# This line will be ignored and also any empty lines and lines that have nothing usefull
 
 
 30 hello
@@ -129,7 +130,7 @@ The composition files starts by define which macro file to use. Then a time valu
 
 When the program reach `jmp` it will jump to the defined delay value, in this case to `10` and second numbers is for how many times it should loop. So in this case two times as it also using 0 as one jump. If no loop counter value is defined it will loop once.
 
-Safe comments is using `//` at the start of the comment line.
+Safe comments is using `#` at the start of the comment line.
 
 # Dependencies
 art-midi-notegen is using Processing to run and the MidiBus library to create midi data. You can install MidiBus by using the in Processing IDE build in library manager (Sketch->Import Library->Add Library). 
