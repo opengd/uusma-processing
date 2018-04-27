@@ -26,7 +26,8 @@ String mainConfig = "{\"USE_CONFIG_REFRESH\": true," +
     "\"CURRENT_PIECE\": \"piece.json\"," +
     "\"PLAY_COMPOSITION\": true," +
     "\"COMPOSITION_REFRESH_DELAY\": 1000," +
-    "\"CURRENT_COMPOSITION\": \"composition.md\"" +
+    "\"CURRENT_COMPOSITION\": \"composition.md\"," +
+    "\"USE_COMPOSITION_IN_MARKDOWN\": true" +
     "}";
 
 // Default Note config
@@ -309,6 +310,8 @@ void ParseComposition(String[] composition) {
   
   Boolean insideComposition = false;
   
+  Boolean useCompositionInMarkdown = mainJson.getBoolean("USE_COMPOSITION_IN_MARKDOWN");
+  
   for(int rowIndex = 0; rowIndex < composition.length; rowIndex++) {
     //println(rowIndex + " : " + composition[rowIndex]);
     String[] unclean = split(composition[rowIndex], ' ');
@@ -321,15 +324,15 @@ void ParseComposition(String[] composition) {
     
     String[] list = clean.array();    
     
-    if(list.length > 1 && list[0].equals("```") && list[1].toLowerCase().equals("composition") && !insideComposition) {
+    if(useCompositionInMarkdown && list.length > 1 && list[0].equals("```") && list[1].toLowerCase().equals("composition") && !insideComposition) {
       insideComposition = true;
       //println("insideComposition: " + insideComposition);
-    } else if (list.length > 0 && list[0].equals("```") && insideComposition) {
+    } else if (useCompositionInMarkdown && list.length > 0 && list[0].equals("```") && insideComposition) {
       insideComposition = false;
       //println("insideComposition: " + insideComposition);
-    } else if(insideComposition && list.length > 0 && list[0].equals("macro")) {
+    } else if((insideComposition || !useCompositionInMarkdown) && list.length > 0 && list[0].equals("macro")) {
       currentMacro = list[1];
-    } else if (list.length > 0 && insideComposition){
+    } else if (list.length > 0 && (insideComposition || !useCompositionInMarkdown)){
             
       int time;
       
@@ -411,14 +414,12 @@ void ParseComposition(String[] composition) {
           compositionJmpCounter = null;
         }
       }
-      
+    }
       //println("(rowIndex+1): " + (rowIndex+2) + ":composition.length:" + composition.length);
-      if(currentCompositionDelay == null && (rowIndex+2) == composition.length) {
+      if(currentCompositionDelay == null && (rowIndex+1) == composition.length) {
         compositionCurrentRow = null;
         println("EOF");
       }
-      
-    }
   }
 }
 
