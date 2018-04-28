@@ -267,39 +267,24 @@ void PlayPiece() {
 }
 
 void LoadConfig(boolean init) {
-  
-  JSONObject json;
-  
   if(init) {
       mainJson = parseJSONObject(mainConfig);
       noteJson = parseJSONObject(noteConfig);     
       ccJson = parseJSONObject(ccConfig);
   }
   
+  LoadConfigJson(mainJson, "main.json" , init, "data/main.json");
+  LoadConfigJson(noteJson, "note.json" , init, "data/note.json");
+  LoadConfigJson(ccJson, "cc.json" , init, "data/cc.json");
+}
+
+void LoadConfigJson(JSONObject jsonConfig, String configFilename, boolean init, String saveAs) {
   try {
-    json = loadJSONObject("main.json");
-    ParseJsonConfig(json, mainJson);
+    JSONObject json = loadJSONObject(configFilename);
+    ParseJsonConfig(json, jsonConfig);
   } catch(Exception e) {
     if(init) {
-      saveJSONObject(mainJson, "data/main.json");
-    }
-  }
-  
-  try {
-    json = loadJSONObject("note.json");
-    ParseJsonConfig(json, noteJson);
-  } catch(Exception e) {
-    if(init) {
-      saveJSONObject(noteJson, "data/note.json");
-    }
-  }
-  
-  try {
-    json = loadJSONObject("cc.json");
-    ParseJsonConfig(json, ccJson);
-  } catch(Exception e) {
-    if(init) {
-      saveJSONObject(ccJson, "data/cc.json");
+      saveJSONObject(jsonConfig, saveAs);
     }
   }
 }
@@ -509,9 +494,9 @@ int GetNextMovmentDelay(java.util.Set movments, Integer current) {
       return n;
     } else if(current == null && next == null) {
       next = n;
-    } else if(current == null && n < next) {
+    } else if(current == null && next != null && n < next) {
       next = n;
-    } else if (current != null && n > current && n < next) {
+    } else if (current != null && n > current && next != null && n < next) {
       next = n;
     } else if (current != null && n > current) {
       next = n;
@@ -548,22 +533,22 @@ void ParseJsonConfig(JSONObject json, JSONObject config) {
       config.setString(name, (String)jv);
       println(name + ":change:from:" + (String)cv + ":to:" + (String)jv);
     } else if (cv instanceof Integer && jv instanceof String && ((String)jv).length() > 1) {
-        Integer nv = null;
-        try {
-          nv = Integer.parseInt(((String)jv).substring(1));
-        } catch(NumberFormatException ex) {
-          nv = null;
-        }
-        
-        if(nv != null && ((String)jv).charAt(0) == '+') {
-          config.setInt(name, nv);
-        } else if(nv != null && ((String)jv).charAt(0) == '-') {
-            
-        } 
-          
-          println(name + ":change:from:" + (int)cv + ":to:" + nv);
-      config.setString(name, (String)jv);
-      println(name + ":change:from:" + (String)cv + ":to:" + (String)jv);
+      Integer nv = null;
+      try {
+        nv = Integer.parseInt(((String)jv).substring(1));
+      } catch(NumberFormatException ex) {
+        nv = null;
+      }
+      
+      if(nv != null && ((String)jv).charAt(0) == '+')
+        nv = (int)cv + nv;
+      else if(nv != null && ((String)jv).charAt(0) == '-')
+        nv = (int)cv - nv;  
+      
+      if(nv != null) {
+        config.setInt(name, nv);
+        println(name + ":change:from:" + (int)cv + ":to:" + nv);
+      }
     }          
   }
 }
