@@ -547,7 +547,24 @@ void ParseJsonConfig(JSONObject json, JSONObject config) {
     } else if (cv instanceof String && jv instanceof String && !((String)cv).equals((String)jv)) {
       config.setString(name, (String)jv);
       println(name + ":change:from:" + (String)cv + ":to:" + (String)jv);
-    }           
+    } else if (cv instanceof Integer && jv instanceof String && ((String)jv).length() > 1) {
+        Integer nv = null;
+        try {
+          nv = Integer.parseInt(((String)jv).substring(1));
+        } catch(NumberFormatException ex) {
+          nv = null;
+        }
+        
+        if(nv != null && ((String)jv).charAt(0) == '+') {
+          config.setInt(name, nv);
+        } else if(nv != null && ((String)jv).charAt(0) == '-') {
+            
+        } 
+          
+          println(name + ":change:from:" + (int)cv + ":to:" + nv);
+      config.setString(name, (String)jv);
+      println(name + ":change:from:" + (String)cv + ":to:" + (String)jv);
+    }          
   }
 }
 
