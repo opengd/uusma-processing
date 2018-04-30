@@ -27,7 +27,8 @@ String mainConfig = "{\"USE_CONFIG_REFRESH\": true," +
     "\"PLAY_COMPOSITION\": true," +
     "\"COMPOSITION_REFRESH_DELAY\": 1000," +
     "\"CURRENT_COMPOSITION\": \"composition.md\"," +
-    "\"USE_COMPOSITION_IN_MARKDOWN\": true" +
+    "\"USE_COMPOSITION_IN_MARKDOWN\": true," +
+    "\"ON_FALSE_CONFIG_REFRESH_DELAY\": 10000" +
     "}";
 
 // Default Note config
@@ -85,7 +86,7 @@ void setup() {
   playPieceRefreshDelay = mainJson.getInt("PIECE_REFRESH_DELAY");
   playCompositionRefreshDelay = mainJson.getInt("COMPOSITION_REFRESH_DELAY");
   
-  mainJsonCheckDelay = 5000;
+  mainJsonCheckDelay = mainJson.getInt("ON_FALSE_CONFIG_REFRESH_DELAY");
 }
 
 void draw() {
@@ -107,7 +108,7 @@ void draw() {
     mainJsonCheckDelay = mainJsonCheckDelay - delta;
     if(mainJsonCheckDelay <= 0) {
       CheckConfigRefreshSettings();
-      mainJsonCheckDelay = 5000;
+      mainJsonCheckDelay = mainJson.getInt("ON_FALSE_CONFIG_REFRESH_DELAY");
     }
   }
   
@@ -274,9 +275,11 @@ void CheckConfigRefreshSettings(){
     try {
     JSONObject json = loadJSONObject("main.json");
     
-    if(json.get("USE_CONFIG_REFRESH") != null && json.getBoolean("USE_CONFIG_REFRESH") != mainJson.getBoolean("USE_CONFIG_REFRESH")) {
-      println("USE_CONFIG_REFRESH:change:from:" + mainJson.getBoolean("USE_CONFIG_REFRESH") + ":to:" + json.getBoolean("USE_CONFIG_REFRESH"));
-      mainJson.setBoolean("USE_CONFIG_REFRESH", json.getBoolean("USE_CONFIG_REFRESH"));
+    if(!mainJson.getBoolean("PLAY_PIECE") && !mainJson.getBoolean("PLAY_COMPOSITION")) {
+      if(json.get("USE_CONFIG_REFRESH") != null && json.getBoolean("USE_CONFIG_REFRESH") != mainJson.getBoolean("USE_CONFIG_REFRESH")) {
+        println("USE_CONFIG_REFRESH:change:from:" + mainJson.getBoolean("USE_CONFIG_REFRESH") + ":to:" + json.getBoolean("USE_CONFIG_REFRESH"));
+        mainJson.setBoolean("USE_CONFIG_REFRESH", json.getBoolean("USE_CONFIG_REFRESH"));
+      }
     }
     
     if(json.get("PLAY_PIECE") != null && json.getBoolean("PLAY_PIECE") != mainJson.getBoolean("PLAY_PIECE")) {
