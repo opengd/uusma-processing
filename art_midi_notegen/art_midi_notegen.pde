@@ -582,22 +582,76 @@ void ParseJsonConfig(JSONObject json, JSONObject config) {
     } else if (cv instanceof String && jv instanceof String && !((String)cv).equals((String)jv)) {
       config.setString(name, (String)jv);
       println(name + ":change:from:" + (String)cv + ":to:" + (String)jv);
-    } else if (cv instanceof Integer && jv instanceof String && ((String)jv).length() > 1) {
-      Integer nv = null;
-      try {
-        nv = Integer.parseInt(((String)jv).substring(1));
-      } catch(NumberFormatException ex) {
-        nv = null;
+    } else if (cv instanceof Integer && jv instanceof String && ((String)jv).length() > 0) {
+      
+      StringList sl = new StringList();
+      
+      String s = "";
+      for(int i = 0; i < ((String)jv).length(); i++) {
+        char c = ((String)jv).charAt(i);
+        if(c == '+' || c == '-') {
+          if(s.length() > 0)
+            sl.append(trim(s));
+          sl.append(str(c));
+          s = "";
+        } else {
+          s = s + c;
+        }
+      }
+      if(s.length() > 0)
+        sl.append(trim(s));
+      
+      char sign = 0;      
+      Integer mem = null;
+      
+      println(sl);
+      
+      for(int i = 0; i < sl.size(); i++) {
+        String ns = sl.get(i);
+        
+        if(i > 0 && (ns.equals("+") || ns.equals("-"))) {
+          sign = ns.charAt(0);
+        } else if (!ns.equals("+") && !ns.equals("-")) {
+          
+          Integer v = null;
+          
+          if(!mainJson.isNull(ns)) 
+            v = mainJson.getInt(ns);
+          else if(!noteJson.isNull(ns)) 
+            v = noteJson.getInt(ns);
+          else if(!ccJson.isNull(ns)) 
+            v = ccJson.getInt(ns);
+            
+          if(v == null) {
+            try {
+              v = Integer.parseInt(ns);
+            } catch(Exception ex) {
+              v = null;
+              println(ex);
+            }
+          }
+          
+          if(v != null && sign == '+' && mem != null) {
+            mem = mem + v;
+          } else if (v != null && sign == '-' && mem != null) {
+            mem = mem - v;
+          } else if (v != null){
+            mem = v;
+          }
+        }
       }
       
-      if(nv != null && ((String)jv).charAt(0) == '+')
-        nv = (int)cv + nv;
-      else if(nv != null && ((String)jv).charAt(0) == '-')
-        nv = (int)cv - nv;  
+      println(mem);
       
-      if(nv != null) {
-        config.setInt(name, nv);
-        println(name + ":change:from:" + (int)cv + ":to:" + nv);
+      if(mem != null && sl.get(0).equals("+")) {
+        mem = (int)cv + mem;
+      } else if(mem != null && sl.get(0).equals("-")) {
+        mem = (int)cv - mem;
+      }  
+
+      if (mem != null) {
+        config.setInt(name, mem);
+        println(name + ":change:from:" + (int)cv + ":to:" + mem);
       }
     }          
   }
