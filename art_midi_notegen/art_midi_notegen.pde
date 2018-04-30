@@ -60,7 +60,8 @@ String ccConfig = "{\"USE_CC_GEN\": true," +
     "\"CC_GEN_VALUE_MAX\": 127," +
     "\"CC_GEN_VALUE_MIN\": 0," +
     "\"CC_GEN_DELAY_MAX\": 10000," +
-    "\"CC_GEN_DELAY_MIN\": 0" +
+    "\"CC_GEN_DELAY_MIN\": 0," +
+    "\"CC_SET_LIST\": []" +
     "}";
 
 void setup() {
@@ -206,12 +207,43 @@ void draw() {
     
     while(newNumberOfCC > 0) {
       
-      int channel = int(random(ccJson.getInt("CC_GEN_CHANNEL_MIN"), ccJson.getInt("CC_GEN_CHANNEL_MAX")));
-      int number = int(random(ccJson.getInt("CC_GEN_NUMBER_MIN"), ccJson.getInt("CC_GEN_NUMBER_MAX")));
-      int value = int(random(ccJson.getInt("CC_GEN_VALUE_MIN"), ccJson.getInt("CC_GEN_VALUE_MAX")));
+      int channel;
+      int number;
+      int value;
       
-      ControllerChange cc = new ControllerChange(channel, number, value, int(random(ccJson.getInt("CC_GEN_DELAY_MIN"), ccJson.getInt("CC_GEN_DELAY_MAX"))));
-      controllerChanges.add(cc);
+      JSONArray ccsl = ccJson.getJSONArray("CC_SET_LIST");
+      
+      Boolean couldNotGetValuesFromCCSetList = false;
+           
+      if(ccsl != null && ccsl.size() > 0) {
+        
+        int ccsli = int(random(ccsl.size()));
+        
+        JSONArray ccslv = ccsl.getJSONArray(ccsli);
+        
+        channel = ccslv.getInt(0);
+        number = ccslv.getInt(1);
+        
+        if(ccslv.size() > 2) {
+          value = int(random(ccslv.getInt(2), ccslv.getInt(3)));
+        } else {
+          value = int(random(ccJson.getInt("CC_GEN_VALUE_MIN"), ccJson.getInt("CC_GEN_VALUE_MAX")));
+        }
+        println("Using cc set list: channel:" + channel + ":number:" + number + ":value:" + value);
+        
+        
+      } else {      
+        channel = int(random(ccJson.getInt("CC_GEN_CHANNEL_MIN"), ccJson.getInt("CC_GEN_CHANNEL_MAX")));
+        number = int(random(ccJson.getInt("CC_GEN_NUMBER_MIN"), ccJson.getInt("CC_GEN_NUMBER_MAX")));
+        value = int(random(ccJson.getInt("CC_GEN_VALUE_MIN"), ccJson.getInt("CC_GEN_VALUE_MAX")));
+      }
+      
+      if(!couldNotGetValuesFromCCSetList) {
+        ControllerChange cc = new ControllerChange(channel, number, value, int(random(ccJson.getInt("CC_GEN_DELAY_MIN"), ccJson.getInt("CC_GEN_DELAY_MAX"))));
+        controllerChanges.add(cc);
+      } else {
+        println("Could not get values from cc set list");
+      }
       
       newNumberOfCC--;
     }
@@ -529,6 +561,9 @@ void ParseJsonConfig(JSONObject json, JSONObject config) {
     } else if(cv instanceof Float && jv instanceof Float && (float)cv != (float)jv) {
       config.setFloat(name, (float)jv);
       println(name + ":change:from:" + (float)cv + ":to:" + (float)jv);
+    } else if(cv instanceof JSONArray && jv instanceof JSONArray && !(""+(JSONArray)cv).equals(""+(JSONArray)jv)) {
+      config.setJSONArray(name, (JSONArray)jv);
+      println(name + ":change:from:" + (JSONArray)cv + ":to:" + (JSONArray)jv);
     } else if (cv instanceof String && jv instanceof String && !((String)cv).equals((String)jv)) {
       config.setString(name, (String)jv);
       println(name + ":change:from:" + (String)cv + ":to:" + (String)jv);
