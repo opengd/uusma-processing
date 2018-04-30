@@ -21,14 +21,17 @@ String mainConfig = "{\"USE_CONFIG_REFRESH\": true," +
     "\"MAIN_LOOP_DELAY_MAX\": 2000," +
     "\"MAIN_LOOP_DELAY_MIN\": 100," +
     "\"USE_MAIN_LOOP_DELAY\": true," +
-    "\"PLAY_PIECE\": true," +
+    "\"PLAY_PIECE\": false," +
     "\"PIECE_REFRESH_DELAY\": 1000," +
     "\"CURRENT_PIECE\": \"piece.json\"," +
-    "\"PLAY_COMPOSITION\": true," +
+    "\"PLAY_COMPOSITION\": false," +
     "\"COMPOSITION_REFRESH_DELAY\": 1000," +
     "\"CURRENT_COMPOSITION\": \"composition.md\"," +
     "\"USE_COMPOSITION_IN_MARKDOWN\": true," +
-    "\"ON_FALSE_CONFIG_REFRESH_DELAY\": 10000" +
+    "\"ON_FALSE_CONFIG_REFRESH_DELAY\": 10000," +
+    "\"MAIN_CONFIG\": \"main.json\"," +
+    "\"NOTE_CONFIG\": \"note.json\"," +
+    "\"CC_CONFIG\": \"cc.json\"," +
     "}";
 
 // Default Note config
@@ -315,14 +318,17 @@ void PlayPiece() {
 
 void LoadConfig(boolean init) {
   if(init) {
-      mainJson = parseJSONObject(mainConfig);
-      noteJson = parseJSONObject(noteConfig);     
-      ccJson = parseJSONObject(ccConfig);
+    mainJson = parseJSONObject(mainConfig);
+    noteJson = parseJSONObject(noteConfig);     
+    ccJson = parseJSONObject(ccConfig);
   }
   
-  LoadConfigJson(mainJson, "main.json" , init, "data/main.json");
-  LoadConfigJson(noteJson, "note.json" , init, "data/note.json");
-  LoadConfigJson(ccJson, "cc.json" , init, "data/cc.json");
+  LoadConfigJson(mainJson, mainJson.getString("MAIN_CONFIG") , init, "data/main.json");
+  if(init) // Do it twice if init to get changes to MAIN_CONFIG, NOTE_CONFIG, and CC_CONFIG
+    LoadConfigJson(mainJson, mainJson.getString("MAIN_CONFIG") , false, "data/main.json");
+    
+  LoadConfigJson(noteJson, mainJson.getString("NOTE_CONFIG") , init, "data/note.json");
+  LoadConfigJson(ccJson, mainJson.getString("CC_CONFIG") , init, "data/cc.json");
 }
 
 void LoadConfigJson(JSONObject jsonConfig, String configFilename, boolean init, String saveAs) {
