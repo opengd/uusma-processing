@@ -207,9 +207,9 @@ void draw() {
     
     while(newNumberOfCC > 0) {
       
-      int channel;
-      int number;
-      int value;
+      int channel = 0;
+      int number = 0;
+      int value = 0;
       
       JSONArray ccsl = ccJson.getJSONArray("CC_SET_LIST");
       
@@ -219,18 +219,30 @@ void draw() {
         
         int ccsli = int(random(ccsl.size()));
         
-        JSONArray ccslv = ccsl.getJSONArray(ccsli);
+        Object ccslv = ccsl.get(ccsli);
         
-        channel = ccslv.getInt(0);
-        number = ccslv.getInt(1);
-        
-        if(ccslv.size() > 2) {
-          value = int(random(ccslv.getInt(2), ccslv.getInt(3)));
-        } else {
-          value = int(random(ccJson.getInt("CC_GEN_VALUE_MIN"), ccJson.getInt("CC_GEN_VALUE_MAX")));
+        if(ccslv instanceof JSONArray) {
+          channel = ((JSONArray)ccslv).getInt(0);
+          number = ((JSONArray)ccslv).getInt(1);
+          
+          if(((JSONArray)ccslv).size() > 2) {
+            value = int(random(((JSONArray)ccslv).getInt(2), ((JSONArray)ccslv).getInt(3)));
+          } else {
+            value = int(random(ccJson.getInt("CC_GEN_VALUE_MIN"), ccJson.getInt("CC_GEN_VALUE_MAX")));
+          }
+        } else if (ccslv instanceof JSONObject) { 
+          channel = ((JSONObject)ccslv).getInt("channel");
+          number = ((JSONObject)ccslv).getInt("number");
+                    
+          if(((JSONObject)ccslv).size() > 2) {
+            int v_min = ((JSONObject)ccslv).getInt("value_min");
+            int v_max = ((JSONObject)ccslv).getInt("value_max");
+            value = int(random(v_min, v_max));
+          } else {
+            value = int(random(ccJson.getInt("CC_GEN_VALUE_MIN"), ccJson.getInt("CC_GEN_VALUE_MAX")));
+          }
         }
-        println("Using cc set list: channel:" + channel + ":number:" + number + ":value:" + value);
-        
+        println("Using cc set list: channel:" + channel + ":number:" + number + ":value:" + value);        
         
       } else {      
         channel = int(random(ccJson.getInt("CC_GEN_CHANNEL_MIN"), ccJson.getInt("CC_GEN_CHANNEL_MAX")));
