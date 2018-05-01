@@ -13,6 +13,7 @@ Integer currentMovmentDelay, compositionJmpCounter, compositionCurrentRow;
 String currentMovmentName;
 float compositionDelta, compositionLast;
 Float currentCompositionDelay;
+IntDict jmpStack;
 
 // Default Main config
 String mainConfig = "{\"USE_CONFIG_REFRESH\": true," + 
@@ -32,6 +33,7 @@ String mainConfig = "{\"USE_CONFIG_REFRESH\": true," +
     "\"MAIN_CONFIG\": \"main.json\"," +
     "\"NOTE_CONFIG\": \"note.json\"," +
     "\"CC_CONFIG\": \"cc.json\"," +
+    "\"COMPOSITION_CLEAR_JMP_STACK_ON_EOF\": false" +
     "}";
 
 // Default Note config
@@ -77,7 +79,9 @@ void setup() {
   MidiBus.list(); // List all available Midi devices on STDOUT. This will show each device's index and name.
 
   midiBus = new MidiBus(this, -1, mainJson.getString("MIDI_OUTPUT_DEVICE")); // Create a new MidiBus
-    
+  
+  jmpStack = new IntDict();
+  
   notes = new ArrayList<Note>();
   controllerChanges = new ArrayList<ControllerChange>();
   
@@ -305,6 +309,7 @@ void PlayComposition() {
       ParseComposition(composition);
   } catch(Exception e) {
     println(e);
+    println("hububub");
   }
 }
 
@@ -420,44 +425,53 @@ void ParseComposition(String[] composition) {
         } catch(Exception e) {}
         
         currentCompositionDelay = null;
-      } else if (time == -1 && currentCompositionDelay == null && list.length > 1 && list[0].equals("jmp")) {          
-        if(compositionJmpCounter != null)
-          compositionJmpCounter--;
+      } else if (time == -1 && currentCompositionDelay == null && list.length > 1 && list[0].toLowerCase().equals("jmp")) {          
         
-        if(compositionJmpCounter == null || compositionJmpCounter > 0) {
-          int jmpTo = 0;
-          try {
-            jmpTo = Integer.parseInt(list[1]);
-          } catch(NumberFormatException ex) {
-            println("Could not parse jump time value: " + list[1]);
-            continue;
+        int jmpTo = 0;
+        try {
+          jmpTo = Integer.parseInt(list[1]);
+        } catch(NumberFormatException ex) {
+          println("Could not parse jump time value: " + list[1]);
+          continue;
+        }
+                
+        if(jmpStack.hasKey("" + jmpTo)) { 
+          jmpStack.set("" + jmpTo, jmpStack.get("" + jmpTo)-1);
+        } else {
+          int jmpValue = 1;
+          
+          if(list.length > 2) {
+            try {
+              jmpValue = Integer.parseInt(list[2]);
+            } catch(NumberFormatException ex) {
+              jmpValue = 1;
+            }
           }
-                              
+          
+          jmpStack.set("" + jmpTo, jmpValue);
+        }
+        
+        if(jmpStack.get("" + jmpTo) == 0) {
+          jmpStack.remove("" + jmpTo);
+        } else {
           currentCompositionDelay = (float)jmpTo;
           compositionCurrentRow = jmpTo;
-                    
-          if(compositionJmpCounter == null) {       
-            if(list.length > 2)
-              try {
-                compositionJmpCounter = Integer.parseInt(list[2]);
-              } catch(NumberFormatException ex) {
-                compositionJmpCounter = 1;
-              }
-              
-            else
-              compositionJmpCounter = 1;
-          }
-          println("jmpTo:" + jmpTo + ":compositionJmpCounter:" + compositionJmpCounter);
-        } else if (compositionJmpCounter != null && compositionJmpCounter <= 0) {
-          compositionJmpCounter = null;
-        }
+          println("jmpTo:" + jmpTo + ":currentJmpStackCounter:" + jmpStack.get("" + jmpTo));
+        }             
       }
     }
-      //println("(rowIndex+1): " + (rowIndex+2) + ":composition.length:" + composition.length);
-      if(currentCompositionDelay == null && (rowIndex+1) == composition.length) {
-        compositionCurrentRow = null;
-        println("EOF");
+    //println("(rowIndex+1): " + (rowIndex+2) + ":composition.length:" + composition.length);
+    if((currentCompositionDelay == null || currentCompositionDelay <= 0) && (rowIndex+1) == composition.length) {
+      compositionCurrentRow = null;
+      currentCompositionDelay = null;
+      println("EOF");
+      
+      if(mainJson.getBoolean("COMPOSITION_CLEAR_JMP_STACK_ON_EOF")) {
+        jmpStack.clear();
+        println("JMP Stack cleared");
       }
+      
+    }
   }
 }
 
