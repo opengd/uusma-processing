@@ -309,7 +309,6 @@ void PlayComposition() {
       ParseComposition(composition);
   } catch(Exception e) {
     println(e);
-    println("hububub");
   }
 }
 
