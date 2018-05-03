@@ -470,6 +470,9 @@ void ParseComposition(String[] composition) {
         println("JMP Stack cleared");
       }
       
+    } else if(currentCompositionDelay != null && currentCompositionDelay <= 0) {
+      compositionCurrentRow = null;
+      currentCompositionDelay = null;
     }
   }
 }
@@ -678,7 +681,7 @@ void ParseJsonConfig(JSONObject json, JSONObject config) {
 
 class Note {
   
-  int channel, pitch, velocity, time, delay;
+  int channel, pitch, velocity, time, delay, init_delay, init_time;
   boolean playing = false;
   
   Note(int channel, int pitch, int velocity, int time, int delay) {
@@ -686,12 +689,17 @@ class Note {
     this.pitch = pitch;
     this.velocity = velocity;
     this.time = time;
+    this.init_time = time;
     this.delay = delay;
+    this.init_delay = delay;
+    
+    println("NEW:NOTE:channel:" + this.channel + ":pitch:" + this.pitch + ":velocity:" + this.velocity + ":time:" + this.time + ":delay:" + this.delay);
   }
   
   void Play() {
     if(!playing) {
       midiBus.sendNoteOn(channel, pitch, velocity); // Send a Midi noteOn
+      println("PLAY:NOTE:channel:" + this.channel + ":pitch:" + this.pitch + ":velocity:" + this.velocity + ":time:" + this.time + ":init_time:" + this.init_time + ":delay:" + this.delay + ":init_delay:" + this.init_delay);
     }
     
     playing = true;
@@ -700,6 +708,7 @@ class Note {
   void Stop() {
     if(playing) {
       midiBus.sendNoteOff(channel, pitch, velocity); // Send a Midi nodeOff
+      println("STOP:NOTE:channel:" + this.channel + ":pitch:" + this.pitch + ":velocity:" + this.velocity + ":time:" + this.time + ":init_time:" + this.init_time + ":delay:" + this.delay + ":init_delay:" + this.init_delay);
     }
     
     playing = false;
