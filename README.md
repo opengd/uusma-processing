@@ -1,4 +1,4 @@
-# art-midi-notegen
+# uusma
 Artistically generate random midi notes and CC. The object is to make the notes perform as unsyncronized as possible and by this art-midi-notegen is not performance optimized, as missing a beat is not an issue.
 
 As it is almost just about sound (and/or music) the art-midi-notegen will not currently show any visual details in the main window, just deep black.
