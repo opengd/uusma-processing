@@ -5,7 +5,9 @@ MidiBus midiBus; // The MidiBus
 ArrayList<Note> notes; // A bunch of notes
 ArrayList<ControllerChange> controllerChanges; // A bunch of cc's
 
-JSONObject mainJson, noteJson, ccJson;
+//JSONObject mainJson, noteJson, ccJson;
+
+ArrayList<Config> configs;
 
 int last, pieceLast, delta, pieceDelta, 
   genLoopDelay, configRefreshDelayTime, playPieceRefreshDelay, playCompositionRefreshDelay, mainJsonCheckDelay;
@@ -16,7 +18,7 @@ Float currentCompositionDelay;
 IntDict jmpStack;
 
 // Default Main config
-String mainConfig = "{\"USE_CONFIG_REFRESH\": true," + 
+String mainConfig = "\"USE_CONFIG_REFRESH\": true," + 
     "\"CONFIG_REFRESH_DELAY\": 10000," +
     "\"MIDI_OUTPUT_DEVICE\": \"Microsoft GS Wavetable Synth\"," +
     "\"MAIN_LOOP_DELAY_MAX\": 2000," +
@@ -33,12 +35,14 @@ String mainConfig = "{\"USE_CONFIG_REFRESH\": true," +
     "\"MAIN_CONFIG\": \"main.json\"," +
     "\"NOTE_CONFIG\": \"note.json\"," +
     "\"CC_CONFIG\": \"cc.json\"," +
-    "\"COMPOSITION_CLEAR_JMP_STACK_ON_EOF\": false" +
-    "}";
+    "\"COMPOSITION_CLEAR_JMP_STACK_ON_EOF\": false," + 
+    "\"CONFIG\": [\"main.json\", \"note.json\", \"cc.json\"]," + 
+    "\"NAME\": \"\"," + 
+    "\"PARENT\": \"\"";
 
 // Default Note config
-String noteConfig = "{\"CHANNEL_MAX\": 16," +
-    "\"CHANNEL_MIN\": 0," + 
+String noteConfig = "\"CHANNEL_MAX\": 16," +
+    "\"CHANNEL_MIN\": 1," + 
     "\"PITCH_MAX\": 128," +
     "\"PITCH_MIN\": 0," +
     "\"VELOCITY_MAX\": 128," +
@@ -49,14 +53,15 @@ String noteConfig = "{\"CHANNEL_MAX\": 16," +
     "\"NOTE_DELAY_MIN\": 2000," +
     "\"GEN_NOTE_DELAY_MAX\": 10000," +
     "\"GEN_NOTE_DELAY_MIN\": 0," +
-    "\"GEN_NB_NOTES_MAX\": 20," +
+    "\"GEN_NB_NOTES_MAX\": 5," +
     "\"GEN_NB_NOTES_MIN\": 0," +
     "\"USE_SAME_CHANNEL_FOR_CURRENT_LOOP\": true," +
-    "\"USE_GEN_DELAY\": true" +
-    "}";
+    "\"USE_GEN_DELAY\": true," +
+    "\"CHANNEL\": 0," + 
+    "\"NOTE\": true";
 
 // Default CC config
-String ccConfig = "{\"USE_CC_GEN\": true," +
+String ccConfig = "\"USE_CC_GEN\": true," +
     "\"CC_GEN_NB_MAX\": 3," +
     "\"CC_GEN_NB_MIN\": 1," +
     "\"CC_GEN_CHANNEL_MAX\": 16," +
@@ -67,18 +72,21 @@ String ccConfig = "{\"USE_CC_GEN\": true," +
     "\"CC_GEN_VALUE_MIN\": 0," +
     "\"CC_GEN_DELAY_MAX\": 10000," +
     "\"CC_GEN_DELAY_MIN\": 0," +
-    "\"CC_SET_LIST\": []" +
-    "}";
+    "\"CC_SET_LIST\": []," +
+    "\"CC_CHANNELS_BANKS\": []," + 
+    "\"CC\": false";
 
 void setup() {
   size(400, 400);
   background(0);
+  
+  configs = new ArrayList<Config>();
     
   LoadConfig(true); // Load main, note and cc config file from json files or default string config 
 
   MidiBus.list(); // List all available Midi devices on STDOUT. This will show each device's index and name.
 
-  midiBus = new MidiBus(this, -1, mainJson.getString("MIDI_OUTPUT_DEVICE")); // Create a new MidiBus
+  midiBus = new MidiBus(this, -1, configs.get(0).getConfig().getString("MIDI_OUTPUT_DEVICE")); // Create a new MidiBus
   
   jmpStack = new IntDict();
   
@@ -89,11 +97,11 @@ void setup() {
   
   genLoopDelay = 0; //int(random(GEN_NOTE_DELAY_MIN, GEN_NOTE_DELAY_MAX));
   
-  configRefreshDelayTime = mainJson.getInt("CONFIG_REFRESH_DELAY");
-  playPieceRefreshDelay = mainJson.getInt("PIECE_REFRESH_DELAY");
-  playCompositionRefreshDelay = mainJson.getInt("COMPOSITION_REFRESH_DELAY");
+  configRefreshDelayTime = configs.get(0).getConfig().getInt("CONFIG_REFRESH_DELAY");
+  playPieceRefreshDelay = configs.get(0).getConfig().getInt("PIECE_REFRESH_DELAY");
+  playCompositionRefreshDelay = configs.get(0).getConfig().getInt("COMPOSITION_REFRESH_DELAY");
   
-  mainJsonCheckDelay = mainJson.getInt("ON_FALSE_CONFIG_REFRESH_DELAY");
+  mainJsonCheckDelay = configs.get(0).getConfig().getInt("ON_FALSE_CONFIG_REFRESH_DELAY");
 }
 
 void draw() {
@@ -103,39 +111,41 @@ void draw() {
   delta = current - last;
   last = current;
   
-  if(mainJson.getBoolean("USE_CONFIG_REFRESH")) {
+  JSONObject defaultConf = configs.get(0).getConfig();
+  
+  if(defaultConf.getBoolean("USE_CONFIG_REFRESH")) {
 
     configRefreshDelayTime = configRefreshDelayTime - delta;
     
     if(configRefreshDelayTime <= 0) {
       LoadConfig(false);
-      configRefreshDelayTime = mainJson.getInt("CONFIG_REFRESH_DELAY");
+      configRefreshDelayTime = defaultConf.getInt("CONFIG_REFRESH_DELAY");
     }
   } else {
     mainJsonCheckDelay = mainJsonCheckDelay - delta;
     if(mainJsonCheckDelay <= 0) {
-      CheckConfigRefreshSettings();
-      mainJsonCheckDelay = mainJson.getInt("ON_FALSE_CONFIG_REFRESH_DELAY");
+      //CheckConfigRefreshSettings();
+      mainJsonCheckDelay = defaultConf.getInt("ON_FALSE_CONFIG_REFRESH_DELAY");
     }
   }
   
-  if(mainJson.getBoolean("PLAY_PIECE")) {
+  if(defaultConf.getBoolean("PLAY_PIECE")) {
     
     playPieceRefreshDelay = playPieceRefreshDelay - delta;
     
     if(playPieceRefreshDelay <= 0) {
       PlayPiece();
-      playPieceRefreshDelay = mainJson.getInt("PIECE_REFRESH_DELAY");
+      playPieceRefreshDelay = defaultConf.getInt("PIECE_REFRESH_DELAY");
     }  
   }
   
-  if(mainJson.getBoolean("PLAY_COMPOSITION")) {
+  if(defaultConf.getBoolean("PLAY_COMPOSITION")) {
     
     playCompositionRefreshDelay = playCompositionRefreshDelay - delta;
     
     if(playCompositionRefreshDelay <= 0) {
       PlayComposition ();
-      playCompositionRefreshDelay = mainJson.getInt("COMPOSITION_REFRESH_DELAY");
+      playCompositionRefreshDelay = defaultConf.getInt("COMPOSITION_REFRESH_DELAY");
     }  
   }
   
@@ -160,45 +170,6 @@ void draw() {
     }
   }
   
-  // If using generate note delay, calculate new by sub delta time
-  if(noteJson.getBoolean("USE_GEN_DELAY") && genLoopDelay > 0) {
-    genLoopDelay = genLoopDelay - delta;
-  }
-  
-  // If generate note delay is zero or below, or not using generate note delay
-  // then generate some notes
-  if(genLoopDelay <= 0 || !noteJson.getBoolean("USE_GEN_DELAY")) {  
-  
-    int channel = int(random(noteJson.getInt("CHANNEL_MIN"), noteJson.getInt("CHANNEL_MAX")));
-    
-    // How many new Notes should be generated on this loop
-    int newNumberOfNotes = int(random(noteJson.getInt("GEN_NB_NOTES_MIN"), noteJson.getInt("GEN_NB_NOTES_MAX")));
-    
-    while(newNumberOfNotes > 0) {
-      
-      if(!noteJson.getBoolean("USE_SAME_CHANNEL_FOR_CURRENT_LOOP")) { // Change the channel for every new note
-        channel = int(random(noteJson.getInt("CHANNEL_MIN"), noteJson.getInt("CHANNEL_MAX")));
-      }
-    
-      int pitch = int(random(noteJson.getInt("PITCH_MIN"), noteJson.getInt("PITCH_MAX"))); // Generate a random pitch value for the new note
-      int velocity = int(random(noteJson.getInt("VELOCITY_MIN"), noteJson.getInt("VELOCITY_MAX"))); // Generate a random velocity value for the new note
-      
-      // Create a new Note
-      Note newNote = new Note(channel, 
-        pitch, 
-        velocity, 
-        int(random(noteJson.getInt("NOTE_TIME_MIN"), noteJson.getInt("NOTE_TIME_MAX"))), 
-        int(random(noteJson.getInt("NOTE_DELAY_MIN"), noteJson.getInt("NOTE_DELAY_MAX"))));
-      notes.add(newNote);
-      
-      newNumberOfNotes--;
-    }
-    
-    if(noteJson.getBoolean("USE_GEN_DELAY")) // If using generate note delay, get a new delay value
-      genLoopDelay = int(random(noteJson.getInt("GEN_NOTE_DELAY_MIN"), noteJson.getInt("GEN_NOTE_DELAY_MAX")));
-  
-  }
-
   for(int i = 0; i < controllerChanges.size(); i++) {
     controllerChanges.get(i).delay = controllerChanges.get(i).delay - delta;
     
@@ -208,19 +179,131 @@ void draw() {
     }
   }
   
-  if(ccJson.getBoolean("USE_CC_GEN")) {
+  int startIndex = configs.size() > 1 ? 1 : 0;
+  
+  for(int i = startIndex; i < configs.size(); i++) {
+    if(configs.get(i).delay > 0)
+      configs.get(i).delay = configs.get(i).delay - delta;
+    
+    if(configs.get(i).delay <= 0) {
+      Boolean NOTE = configs.get(i).getConfig().isNull("NOTE") 
+        ? (Boolean)getParentValue(configs.get(i).getConfig(), "NOTE") 
+        : configs.get(i).getConfig().getBoolean("NOTE");
+      
+      if(NOTE)
+        CreateNotes(configs.get(i));
+        
+      Boolean CC = configs.get(i).getConfig().isNull("CC") 
+        ? (Boolean)getParentValue(configs.get(i).getConfig(), "CC") 
+        : configs.get(i).getConfig().getBoolean("CC");
+      
+      if(CC)
+        CreateCC(configs.get(i));
+      
+      int GEN_NOTE_DELAY_MIN = configs.get(i).getConfig().isNull("GEN_NOTE_DELAY_MIN") 
+        ? (int)getParentValue(configs.get(i).getConfig(), "GEN_NOTE_DELAY_MIN") 
+        : configs.get(i).getConfig().getInt("GEN_NOTE_DELAY_MIN");
+      int GEN_NOTE_DELAY_MAX = configs.get(i).getConfig().isNull("GEN_NOTE_DELAY_MAX") 
+        ? (int)getParentValue(configs.get(i).getConfig(), "GEN_NOTE_DELAY_MAX") 
+        : configs.get(i).getConfig().getInt("GEN_NOTE_DELAY_MAX");
+  
+      configs.get(i).delay = int(random(GEN_NOTE_DELAY_MIN, GEN_NOTE_DELAY_MAX));
+    }
+  }
+  
+  if(configs.get(0).getConfig().getBoolean("USE_MAIN_LOOP_DELAY"))
+    delay(int(random(configs.get(0).getConfig().getInt("MAIN_LOOP_DELAY_MIN"), configs.get(0).getConfig().getInt("MAIN_LOOP_DELAY_MAX")))); //Main loop delay
+}
+
+void delay(int time) {
+  int current = millis();
+  while (millis () < current+time) Thread.yield();
+}
+
+void CreateNotes(Config conf) {
+  
+  JSONObject jo = conf.getConfig(); 
+  
+  // If using generate note delay, calculate new by sub delta time
+  //if(!jo.isNull("USE_GEN_DELAY") && jo.getBoolean("USE_GEN_DELAY") && genLoopDelay > 0) {
+  //}
+  
+  // If generate note delay is zero or below, or not using generate note delay
+  // then generate some notes
+  
+  //Boolean USE_GEN_DELAY = jo.isNull("USE_GEN_DELAY") ? (Boolean)getParentValue(jo, "USE_GEN_DELAY") : jo.getBoolean("USE_GEN_DELAY");
+  
+  
+  //if(NOTE) {  
+    
+    Integer channel = conf.getChannel() != null && conf.getChannel() != 0 ? conf.getChannel() : null;
+        
+    // How many new Notes should be generated on this loop
+    int GEN_NB_NOTES_MIN = jo.isNull("GEN_NB_NOTES_MIN") ? (int)getParentValue(jo, "GEN_NB_NOTES_MIN") : jo.getInt("GEN_NB_NOTES_MIN"); 
+    int GEN_NB_NOTES_MAX = jo.isNull("GEN_NB_NOTES_MAX") ? (int)getParentValue(jo, "GEN_NB_NOTES_MAX") : jo.getInt("GEN_NB_NOTES_MAX");
+    
+    int newNumberOfNotes = int(random(GEN_NB_NOTES_MIN, GEN_NB_NOTES_MAX));
+    
+    if(channel == null) { // Change the channel for every new note  || !jo.getBoolean("USE_SAME_CHANNEL_FOR_CURRENT_LOOP")
+      
+      int CHANNEL_MIN = jo.isNull("CHANNEL_MIN") ? (int)getParentValue(jo, "CHANNEL_MIN") : jo.getInt("CHANNEL_MIN");
+      int CHANNEL_MAX = jo.isNull("CHANNEL_MAX") ? (int)getParentValue(jo, "CHANNEL_MAX") : jo.getInt("CHANNEL_MAX");
+      println(CHANNEL_MIN + " " + CHANNEL_MAX);
+      channel = int(random(CHANNEL_MIN, CHANNEL_MAX));
+    }
+      
+    while(newNumberOfNotes > 0) {
+                    
+      int PITCH_MIN = jo.isNull("PITCH_MIN") ? (int)getParentValue(jo, "PITCH_MIN") : jo.getInt("PITCH_MIN");
+      int PITCH_MAX = jo.isNull("PITCH_MAX") ? (int)getParentValue(jo, "PITCH_MAX") : jo.getInt("PITCH_MAX");      
+      
+      int VELOCITY_MIN = jo.isNull("VELOCITY_MIN") ? (int)getParentValue(jo, "VELOCITY_MIN") : jo.getInt("VELOCITY_MIN");
+      int VELOCITY_MAX = jo.isNull("VELOCITY_MAX") ? (int)getParentValue(jo, "VELOCITY_MAX") : jo.getInt("VELOCITY_MAX");
+      
+      int NOTE_TIME_MIN = jo.isNull("NOTE_TIME_MIN") ? (int)getParentValue(jo, "NOTE_TIME_MIN") : jo.getInt("NOTE_TIME_MIN");
+      int NOTE_TIME_MAX = jo.isNull("NOTE_TIME_MAX") ? (int)getParentValue(jo, "NOTE_TIME_MAX") : jo.getInt("NOTE_TIME_MAX");
+      
+      int NOTE_DELAY_MIN = jo.isNull("NOTE_DELAY_MIN") ? (int)getParentValue(jo, "NOTE_DELAY_MIN") : jo.getInt("NOTE_DELAY_MIN");
+      int NOTE_DELAY_MAX = jo.isNull("NOTE_DELAY_MAX") ? (int)getParentValue(jo, "NOTE_DELAY_MAX") : jo.getInt("NOTE_DELAY_MAX");
+      
+      // Create a new Note
+      Note newNote = new Note(channel, 
+        int(random(PITCH_MIN, PITCH_MAX)), // Generate a random pitch value for the new note, 
+        int(random(VELOCITY_MIN, VELOCITY_MAX)), // Generate a random velocity value for the new note
+        int(random(NOTE_TIME_MIN, NOTE_TIME_MAX)), 
+        int(random(NOTE_DELAY_MIN, NOTE_DELAY_MAX)));
+      notes.add(newNote);
+      
+      newNumberOfNotes--;
+    }
+    
+    //if(noteJson.getBoolean("USE_GEN_DELAY")) // If using generate note delay, get a new delay value
+      
+  //}
+}
+
+void CreateCC(Config conf) {
+  
+  JSONObject jo = conf.getConfig(); 
+
+    
+  //if(CC) {
         
     // How many new CC should be generated on this loop
-    int newNumberOfCC = int(random(ccJson.getInt("CC_GEN_NB_MIN"), ccJson.getInt("CC_GEN_NB_MAX")));
+    
+    int CC_GEN_NB_MIN = jo.isNull("CC_GEN_NB_MIN") ? (int)getParentValue(jo, "CC_GEN_NB_MIN") : jo.getInt("CC_GEN_NB_MIN");
+    int CC_GEN_NB_MAX = jo.isNull("CC_GEN_NB_MAX") ? (int)getParentValue(jo, "CC_GEN_NB_MAX") : jo.getInt("CC_GEN_NB_MAX");
+
+    int newNumberOfCC = int(random(CC_GEN_NB_MIN, CC_GEN_NB_MAX));
     
     while(newNumberOfCC > 0) {
       
       int channel = 0;
       int number = 0;
       int value = 0;
-      
-      JSONArray ccsl = ccJson.getJSONArray("CC_SET_LIST");
-      
+            
+      JSONArray ccsl = jo.isNull("CC_SET_LIST") ? (JSONArray)getParentValue(jo, "CC_SET_LIST") : jo.getJSONArray("CC_SET_LIST");
+     
       Boolean couldNotGetValuesFromCCSetList = false;
            
       if(ccsl != null && ccsl.size() > 0) {
@@ -236,7 +319,9 @@ void draw() {
           if(((JSONArray)ccslv).size() > 2) {
             value = int(random(((JSONArray)ccslv).getInt(2), ((JSONArray)ccslv).getInt(3)));
           } else {
-            value = int(random(ccJson.getInt("CC_GEN_VALUE_MIN"), ccJson.getInt("CC_GEN_VALUE_MAX")));
+            int CC_GEN_VALUE_MIN = jo.isNull("CC_GEN_VALUE_MIN") ? (int)getParentValue(jo, "CC_GEN_VALUE_MIN") : jo.getInt("CC_GEN_VALUE_MIN");
+            int CC_GEN_VALUE_MAX = jo.isNull("CC_GEN_VALUE_MAX") ? (int)getParentValue(jo, "CC_GEN_VALUE_MAX") : jo.getInt("CC_GEN_VALUE_MAX");
+            value = int(random(CC_GEN_VALUE_MIN, CC_GEN_VALUE_MAX));
           }
         } else if (ccslv instanceof JSONObject) { 
           channel = ((JSONObject)ccslv).getInt("channel");
@@ -247,19 +332,33 @@ void draw() {
             int v_max = ((JSONObject)ccslv).getInt("value_max");
             value = int(random(v_min, v_max));
           } else {
-            value = int(random(ccJson.getInt("CC_GEN_VALUE_MIN"), ccJson.getInt("CC_GEN_VALUE_MAX")));
+            int CC_GEN_VALUE_MIN = jo.isNull("CC_GEN_VALUE_MIN") ? (int)getParentValue(jo, "CC_GEN_VALUE_MIN") : jo.getInt("CC_GEN_VALUE_MIN");
+            int CC_GEN_VALUE_MAX = jo.isNull("CC_GEN_VALUE_MAX") ? (int)getParentValue(jo, "CC_GEN_VALUE_MAX") : jo.getInt("CC_GEN_VALUE_MAX");
+            value = int(random(CC_GEN_VALUE_MIN, CC_GEN_VALUE_MAX));
           }
         }
         println("Using cc set list: channel:" + channel + ":number:" + number + ":value:" + value);        
         
-      } else {      
-        channel = int(random(ccJson.getInt("CC_GEN_CHANNEL_MIN"), ccJson.getInt("CC_GEN_CHANNEL_MAX")));
-        number = int(random(ccJson.getInt("CC_GEN_NUMBER_MIN"), ccJson.getInt("CC_GEN_NUMBER_MAX")));
-        value = int(random(ccJson.getInt("CC_GEN_VALUE_MIN"), ccJson.getInt("CC_GEN_VALUE_MAX")));
+      } else {
+        int CC_GEN_CHANNEL_MIN = jo.isNull("CC_GEN_CHANNEL_MIN") ? (int)getParentValue(jo, "CC_GEN_CHANNEL_MIN") : jo.getInt("CC_GEN_CHANNEL_MIN");
+        int CC_GEN_CHANNEL_MAX = jo.isNull("CC_GEN_CHANNEL_MAX") ? (int)getParentValue(jo, "CC_GEN_CHANNEL_MAX") : jo.getInt("CC_GEN_CHANNEL_MAX");
+        channel = int(random(CC_GEN_CHANNEL_MIN, CC_GEN_CHANNEL_MAX));
+        
+        int CC_GEN_NUMBER_MIN = jo.isNull("CC_GEN_NUMBER_MIN") ? (int)getParentValue(jo, "CC_GEN_NUMBER_MIN") : jo.getInt("CC_GEN_NUMBER_MIN");
+        int CC_GEN_NUMBER_MAX = jo.isNull("CC_GEN_NUMBER_MAX") ? (int)getParentValue(jo, "CC_GEN_NUMBER_MAX") : jo.getInt("CC_GEN_NUMBER_MAX");
+        number = int(random(CC_GEN_NUMBER_MIN, CC_GEN_NUMBER_MAX));
+        
+        int CC_GEN_VALUE_MIN = jo.isNull("CC_GEN_VALUE_MIN") ? (int)getParentValue(jo, "CC_GEN_VALUE_MIN") : jo.getInt("CC_GEN_VALUE_MIN");
+        int CC_GEN_VALUE_MAX = jo.isNull("CC_GEN_VALUE_MAX") ? (int)getParentValue(jo, "CC_GEN_VALUE_MAX") : jo.getInt("CC_GEN_VALUE_MAX");
+        value = int(random(CC_GEN_VALUE_MIN, CC_GEN_VALUE_MAX));
       }
       
       if(!couldNotGetValuesFromCCSetList) {
-        ControllerChange cc = new ControllerChange(channel, number, value, int(random(ccJson.getInt("CC_GEN_DELAY_MIN"), ccJson.getInt("CC_GEN_DELAY_MAX"))));
+        
+        int CC_GEN_DELAY_MIN = jo.isNull("CC_GEN_DELAY_MIN") ? (int)getParentValue(jo, "CC_GEN_DELAY_MIN") : jo.getInt("CC_GEN_DELAY_MIN");
+        int CC_GEN_DELAY_MAX = jo.isNull("CC_GEN_DELAY_MAX") ? (int)getParentValue(jo, "CC_GEN_DELAY_MAX") : jo.getInt("CC_GEN_DELAY_MAX");
+        
+        ControllerChange cc = new ControllerChange(channel, number, value, int(random(CC_GEN_DELAY_MIN, CC_GEN_DELAY_MAX)));
         controllerChanges.add(cc);
       } else {
         println("Could not get values from cc set list");
@@ -267,36 +366,55 @@ void draw() {
       
       newNumberOfCC--;
     }
-  }
-  
-  if(mainJson.getBoolean("USE_MAIN_LOOP_DELAY"))
-    delay(int(random(mainJson.getInt("MAIN_LOOP_DELAY_MIN"), mainJson.getInt("MAIN_LOOP_DELAY_MAX")))); //Main loop delay
+  //}
 }
 
-void delay(int time) {
-  int current = millis();
-  while (millis () < current+time) Thread.yield();
+Object getParentValue(JSONObject jo, String keyname) {
+  
+  
+  if(!jo.isNull("PARENT") && !jo.getString("PARENT").equals("")) {
+    for(Config conf: configs) {
+      if(conf.getName() != null && conf.getName().equals(jo.getString("PARENT"))) {
+        if(!conf.getConfig().isNull(keyname)) {
+          return conf.getConfig().get(keyname);
+        } else if(conf.getParent() != null) {
+          return getParentValue(conf.getConfig(), keyname);
+        }
+        
+      } else if(conf.getChannel() != null && conf.getChannel() == Integer.parseInt(jo.getString("PARENT"))) {
+        if(!conf.getConfig().isNull(keyname)) {
+          return conf.getConfig().get(keyname);
+        } else if(conf.getParent() != null) {
+          return getParentValue(conf.getConfig(), keyname);
+        }
+      }
+    }
+  }
+  
+  
+  return configs.get(0).getConfig().get(keyname);
 }
+
 
 void CheckConfigRefreshSettings(){
     try {
     JSONObject json = loadJSONObject("main.json");
     
-    if(!mainJson.getBoolean("PLAY_PIECE") && !mainJson.getBoolean("PLAY_COMPOSITION")) {
-      if(json.get("USE_CONFIG_REFRESH") != null && json.getBoolean("USE_CONFIG_REFRESH") != mainJson.getBoolean("USE_CONFIG_REFRESH")) {
-        println("USE_CONFIG_REFRESH:change:from:" + mainJson.getBoolean("USE_CONFIG_REFRESH") + ":to:" + json.getBoolean("USE_CONFIG_REFRESH"));
-        mainJson.setBoolean("USE_CONFIG_REFRESH", json.getBoolean("USE_CONFIG_REFRESH"));
+    if(!configs.get(0).getConfig().getBoolean("PLAY_PIECE") && !configs.get(0).getConfig().getBoolean("PLAY_COMPOSITION")) {
+      if(json.get("USE_CONFIG_REFRESH") != null && json.getBoolean("USE_CONFIG_REFRESH") != configs.get(0).getConfig().getBoolean("USE_CONFIG_REFRESH")) {
+        println("USE_CONFIG_REFRESH:change:from:" + configs.get(0).getConfig().getBoolean("USE_CONFIG_REFRESH") + ":to:" + json.getBoolean("USE_CONFIG_REFRESH"));
+        configs.get(0).getConfig().setBoolean("USE_CONFIG_REFRESH", json.getBoolean("USE_CONFIG_REFRESH"));
       }
     }
     
-    if(json.get("PLAY_PIECE") != null && json.getBoolean("PLAY_PIECE") != mainJson.getBoolean("PLAY_PIECE")) {
-      println("PLAY_PIECE:change:from:" + mainJson.getBoolean("PLAY_PIECE") + ":to:" + json.getBoolean("PLAY_PIECE"));
-      mainJson.setBoolean("PLAY_PIECE", json.getBoolean("PLAY_PIECE"));
+    if(json.get("PLAY_PIECE") != null && json.getBoolean("PLAY_PIECE") != configs.get(0).getConfig().getBoolean("PLAY_PIECE")) {
+      println("PLAY_PIECE:change:from:" + configs.get(0).getConfig().getBoolean("PLAY_PIECE") + ":to:" + json.getBoolean("PLAY_PIECE"));
+      configs.get(0).getConfig().setBoolean("PLAY_PIECE", json.getBoolean("PLAY_PIECE"));
     }
     
-    if(json.get("PLAY_COMPOSITION") != null && json.getBoolean("PLAY_COMPOSITION") != mainJson.getBoolean("PLAY_COMPOSITION")) {
-      println("PLAY_COMPOSITION:change:from:" + mainJson.getBoolean("PLAY_COMPOSITION") + ":to:" + json.getBoolean("PLAY_COMPOSITION"));
-      mainJson.setBoolean("PLAY_COMPOSITION", json.getBoolean("PLAY_COMPOSITION"));
+    if(json.get("PLAY_COMPOSITION") != null && json.getBoolean("PLAY_COMPOSITION") != configs.get(0).getConfig().getBoolean("PLAY_COMPOSITION")) {
+      println("PLAY_COMPOSITION:change:from:" + configs.get(0).getConfig().getBoolean("PLAY_COMPOSITION") + ":to:" + json.getBoolean("PLAY_COMPOSITION"));
+      configs.get(0).getConfig().setBoolean("PLAY_COMPOSITION", json.getBoolean("PLAY_COMPOSITION"));
     } 
   } catch(Exception e) {
   }
@@ -304,7 +422,7 @@ void CheckConfigRefreshSettings(){
 
 void PlayComposition() {
   try {
-    String[] composition = loadStrings(mainJson.getString("CURRENT_COMPOSITION"));
+    String[] composition = loadStrings(configs.get(0).getConfig().getString("CURRENT_COMPOSITION"));
     if(composition.length > 0)
       ParseComposition(composition);
   } catch(Exception e) {
@@ -314,7 +432,7 @@ void PlayComposition() {
 
 void PlayPiece() {
   try {
-    JSONObject json = loadJSONObject(mainJson.getString("CURRENT_PIECE"));
+    JSONObject json = loadJSONObject(configs.get(0).getConfig().getString("CURRENT_PIECE"));
     ParseJsonPiece(json);
   } catch(Exception e) {
   }
@@ -322,18 +440,131 @@ void PlayPiece() {
 
 void LoadConfig(boolean init) {
   if(init) {
-    mainJson = parseJSONObject(mainConfig);
-    noteJson = parseJSONObject(noteConfig);     
-    ccJson = parseJSONObject(ccConfig);
+    
+    Config c = new Config(parseJSONObject("{" + mainConfig + "," + noteConfig + "," + ccConfig + "}"));
+    
+    configs.add(c);
+    
+    try {
+      loadJSONObject("main.json");
+    } catch (Exception e) {
+      saveJSONObject(parseJSONObject("{" + mainConfig + "}"), "data/main.json");
+    }
+    
+    try {
+      loadJSONObject("note.json");
+    } catch (Exception e) {
+      saveJSONObject(parseJSONObject("{" + noteConfig + "}"), "data/note.json");
+    }
+    
+    try {
+      loadJSONObject("cc.json");
+    } catch (Exception e) {
+      saveJSONObject(parseJSONObject("{" + ccConfig + "}"), "data/cc.json");
+    }
+    
+    //mainJson = parseJSONObject(mainConfig);
+    //noteJson = parseJSONObject(noteConfig);     
+    //ccJson = parseJSONObject(ccConfig);
   }
   
-  LoadConfigJson(mainJson, mainJson.getString("MAIN_CONFIG") , init, "data/main.json");
-  if(init) // Do it twice if init to get changes to MAIN_CONFIG, NOTE_CONFIG, and CC_CONFIG
-    LoadConfigJson(mainJson, mainJson.getString("MAIN_CONFIG") , false, "data/main.json");
+  ArrayList<Config> newconfs = new ArrayList<Config>();
+  ArrayList<Config> current = new ArrayList<Config>();
+  
+  for(int counter = 0; counter < 2; counter++)
+  for(Config con: configs) {
     
-  LoadConfigJson(noteJson, mainJson.getString("NOTE_CONFIG") , init, "data/note.json");
-  LoadConfigJson(ccJson, mainJson.getString("CC_CONFIG") , init, "data/cc.json");
+    if(!con.getConfig().isNull("CONFIG")) {    
+      for(int i = 0; i < con.getConfig().getJSONArray("CONFIG").size(); i++) {
+        Object o = configs.get(0).getConfig().getJSONArray("CONFIG").get(i);
+        
+        JSONObject jo = null;
+        if(o instanceof JSONObject) {
+          jo = (JSONObject)o;
+        } else if (o instanceof String) {
+          try {
+            jo = loadJSONObject((String)o);
+          } catch(Exception e) {
+            println("Could not find config file: " + (String)o);
+          }
+        }
+        
+        if(jo != null) {
+         
+          String name = GetName(jo);
+          Integer channel = GetChannel(jo);
+          
+          if(name != null || channel != null) {
+            
+            Boolean match = false;
+            
+            for(Config conf: configs) {
+              String confName = GetName(conf.getConfig());
+              Integer confChannel = GetChannel(conf.getConfig());
+              
+              if(DoParsConfig(name, channel, confName, confChannel)) {
+                ParseJsonConfig(jo, conf.getConfig());
+                match = true;
+              }
+            }
+            
+            if(!match) {
+              Config c = new Config(jo);
+              
+              ParseJsonConfig(jo, c.getConfig());
+              
+              newconfs.add(c);
+            }
+           
+            
+          } else {
+            ParseJsonConfig(jo, configs.get(0).getConfig());
+          }
+          
+          //println(jo);
+        }
+      }
+    }
+  }
+  
+  for(Config n: newconfs)
+    configs.add(n);
+  
+  //LoadConfigJson(mainJson, mainJson.getString("MAIN_CONFIG") , init, "data/main.json");
+  //if(init) // Do it twice if init to get changes to MAIN_CONFIG, NOTE_CONFIG, and CC_CONFIG
+  //  LoadConfigJson(mainJson, mainJson.getString("MAIN_CONFIG") , false, "data/main.json");
+    
+  //LoadConfigJson(noteJson, mainJson.getString("NOTE_CONFIG") , init, "data/note.json");
+  //LoadConfigJson(ccJson, mainJson.getString("CC_CONFIG") , init, "data/cc.json");
 }
+
+Boolean DoParsConfig(String name, Integer channel, String confName, Integer confChannel) {
+  if(name != null && channel != null && confName != null && confName.equals(name) && confChannel != null && confChannel == channel)
+    return true;
+  else if(name == null && channel != null && confName == null && confChannel != null && confChannel == channel)
+    return true;
+  else if(name != null && channel == null && confName != null && confName.equals(name) && confChannel == null)
+    return true;
+  
+  return false;
+}
+
+String GetName(JSONObject conf) {
+  if(!conf.isNull("NAME") && !conf.getString("NAME").equals("")) {
+      return conf.getString("NAME");
+  }
+
+  return null;
+}
+
+Integer GetChannel(JSONObject conf) {
+  if(!conf.isNull("CHANNEL")) {
+      return conf.getInt("CHANNEL");
+  }
+  
+  return null;
+}
+
 
 void LoadConfigJson(JSONObject jsonConfig, String configFilename, boolean init, String saveAs) {
   try {
@@ -352,7 +583,7 @@ void ParseComposition(String[] composition) {
   
   Boolean insideComposition = false;
   
-  Boolean useCompositionInMarkdown = mainJson.getBoolean("USE_COMPOSITION_IN_MARKDOWN");
+  Boolean useCompositionInMarkdown = configs.get(0).getConfig().getBoolean("USE_COMPOSITION_IN_MARKDOWN");
   
   for(int rowIndex = 0; rowIndex < composition.length; rowIndex++) {
     //println(rowIndex + " : " + composition[rowIndex]);
@@ -465,7 +696,7 @@ void ParseComposition(String[] composition) {
       currentCompositionDelay = null;
       println("EOF");
       
-      if(mainJson.getBoolean("COMPOSITION_CLEAR_JMP_STACK_ON_EOF")) {
+      if(configs.get(0).getConfig().getBoolean("COMPOSITION_CLEAR_JMP_STACK_ON_EOF")) {
         jmpStack.clear();
         println("JMP Stack cleared");
       }
@@ -516,6 +747,9 @@ void ParseJsonPiece(JSONObject piece) {
 }
 
 void ParseMovment(JSONObject piece, String movmentName) {
+  
+  /*
+  
   JSONObject movement = (JSONObject)piece.get(movmentName);
   
   println("parse:movment:" + movmentName);
@@ -548,6 +782,7 @@ void ParseMovment(JSONObject piece, String movmentName) {
       }
     }    
   }
+  */
 }
 
 int GetNextMovmentDelay(java.util.Set movments, Integer current) {
@@ -601,6 +836,9 @@ void ParseJsonConfig(JSONObject json, JSONObject config) {
     } else if(cv instanceof JSONArray && jv instanceof JSONArray && !(""+(JSONArray)cv).equals(""+(JSONArray)jv)) {
       config.setJSONArray(name, (JSONArray)jv);
       println(name + ":change:from:" + (JSONArray)cv + ":to:" + (JSONArray)jv);
+    } else if(cv instanceof JSONObject && jv instanceof JSONObject && !(""+(JSONObject)cv).equals(""+(JSONObject)jv)) {
+      config.setJSONObject(name, (JSONObject)jv);
+      println(name + ":change:from:" + (JSONObject)cv + ":to:" + (JSONObject)jv);
     } else if (cv instanceof String && jv instanceof String && !((String)cv).equals((String)jv)) {
       config.setString(name, (String)jv);
       println(name + ":change:from:" + (String)cv + ":to:" + (String)jv);
@@ -637,13 +875,15 @@ void ParseJsonConfig(JSONObject json, JSONObject config) {
           
           Integer v = null;
           
-          if(!mainJson.isNull(ns)) 
-            v = mainJson.getInt(ns);
+          if(!configs.get(0).getConfig().isNull(ns)) 
+            v = configs.get(0).getConfig().getInt(ns);
+          /*
           else if(!noteJson.isNull(ns)) 
             v = noteJson.getInt(ns);
           else if(!ccJson.isNull(ns)) 
             v = ccJson.getInt(ns);
-            
+          */
+          
           if(v == null) {
             try {
               v = Integer.parseInt(ns);
@@ -742,5 +982,48 @@ class ControllerChange {
   void SetChanged(boolean changed) {
     this.changed = changed;
   }
+}
+
+class Config {
+  int delay;
+  private JSONObject jsonConfig;
   
+  Config() {
+    this.jsonConfig = new JSONObject();
+  }
+  
+  Config(JSONObject jsonConfig) {
+    this.jsonConfig = jsonConfig;
+  }
+  
+  JSONObject getConfig() {
+    return jsonConfig;
+  }
+  
+  void setConfig(JSONObject jsonConfig) {
+    this.jsonConfig = jsonConfig;
+  }
+  
+  Integer getChannel() {
+    if(!this.jsonConfig.isNull("CHANNEL")) {
+        return this.jsonConfig.getInt("CHANNEL");
+    }
+  
+    return null;
+  }
+  
+  String getName() {
+    if(!this.jsonConfig.isNull("NAME") && !this.jsonConfig.getString("NAME").equals("")) {
+        return this.jsonConfig.getString("NAME");
+    }
+
+    return null;
+  }
+  
+  String getParent() {
+    if(!this.jsonConfig.isNull("PARENT") && !this.jsonConfig.getString("PARENT").equals(""))
+      return this.jsonConfig.getString("PARENT");
+    
+    return null;
+  }
 }
