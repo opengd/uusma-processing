@@ -461,66 +461,62 @@ void LoadConfig(boolean init) {
     } catch (Exception e) {
       saveJSONObject(parseJSONObject("{" + ccConfig + "}"), "data/cc.json");
     }
-    
-    //mainJson = parseJSONObject(mainConfig);
-    //noteJson = parseJSONObject(noteConfig);     
-    //ccJson = parseJSONObject(ccConfig);
   }
   
   ArrayList<Config> newconfs = new ArrayList<Config>();
-  ArrayList<Config> current = new ArrayList<Config>();
   
-  for(int counter = 0; counter < 2; counter++)
-  for(Config con: configs) {
-    
-    if(!con.getConfig().isNull("CONFIG")) {    
-      for(int i = 0; i < con.getConfig().getJSONArray("CONFIG").size(); i++) {
-        Object o = configs.get(0).getConfig().getJSONArray("CONFIG").get(i);
-        
-        JSONObject jo = null;
-        if(o instanceof JSONObject) {
-          jo = (JSONObject)o;
-        } else if (o instanceof String) {
-          try {
-            jo = loadJSONObject((String)o);
-          } catch(Exception e) {
-            println("Could not find config file: " + (String)o);
-          }
-        }
-        
-        if(jo != null) {
-         
-          String name = GetName(jo);
-          Integer channel = GetChannel(jo);
+  for(int counter = 0; counter < 2; counter++) {
+    for(Config con: configs) {
+      
+      if(!con.getConfig().isNull("CONFIG")) {    
+        for(int i = 0; i < con.getConfig().getJSONArray("CONFIG").size(); i++) {
+          Object o = configs.get(0).getConfig().getJSONArray("CONFIG").get(i);
           
-          if(name != null || channel != null) {
-            
-            Boolean match = false;
-            
-            for(Config conf: configs) {
-              String confName = GetName(conf.getConfig());
-              Integer confChannel = GetChannel(conf.getConfig());
-              
-              if(DoParsConfig(name, channel, confName, confChannel)) {
-                ParseJsonConfig(jo, conf.getConfig());
-                match = true;
-              }
+          JSONObject jo = null;
+          if(o instanceof JSONObject) {
+            jo = (JSONObject)o;
+          } else if (o instanceof String) {
+            try {
+              jo = loadJSONObject((String)o);
+            } catch(Exception e) {
+              println("Could not find config file: " + (String)o);
             }
-            
-            if(!match) {
-              Config c = new Config(jo);
-              
-              ParseJsonConfig(jo, c.getConfig());
-              
-              newconfs.add(c);
-            }
+          }
+          
+          if(jo != null) {
            
+            String name = GetName(jo);
+            Integer channel = GetChannel(jo);
             
-          } else {
-            ParseJsonConfig(jo, configs.get(0).getConfig());
+            if(name != null || channel != null) {
+              
+              Boolean match = false;
+              
+              for(Config conf: configs) {
+                String confName = GetName(conf.getConfig());
+                Integer confChannel = GetChannel(conf.getConfig());
+                
+                if(DoParsConfig(name, channel, confName, confChannel)) {
+                  ParseJsonConfig(jo, conf.getConfig());
+                  match = true;
+                }
+              }
+              
+              if(!match) {
+                Config c = new Config(jo);
+                
+                ParseJsonConfig(jo, c.getConfig());
+                
+                newconfs.add(c);
+              }
+             
+              
+            } else {
+              ParseJsonConfig(jo, configs.get(0).getConfig());
+            }
+            
+            //println(jo);
           }
-          
-          //println(jo);
         }
       }
     }
