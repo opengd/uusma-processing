@@ -390,8 +390,10 @@ Object getParentValue(JSONObject jo, String keyname) {
     }
   }
   
+  if(!configs.get(0).getConfig().isNull(keyname))
+    return configs.get(0).getConfig().get(keyname);
   
-  return configs.get(0).getConfig().get(keyname);
+  return null;
 }
 
 
@@ -868,17 +870,13 @@ void ParseJsonConfig(JSONObject json, JSONObject config) {
           sign = ns.charAt(0);
         } else if (!ns.equals("+") && !ns.equals("-")) {
           
-          Integer v = null;
+          Integer v = null; 
           
-          if(!configs.get(0).getConfig().isNull(ns)) 
-            v = configs.get(0).getConfig().getInt(ns);
-          /*
-          else if(!noteJson.isNull(ns)) 
-            v = noteJson.getInt(ns);
-          else if(!ccJson.isNull(ns)) 
-            v = ccJson.getInt(ns);
-          */
-          
+          if(config.isNull(ns))
+            v = (Integer)getParentValue(config, ns);
+          else
+            v = config.getInt(ns);
+                   
           if(v == null) {
             try {
               v = Integer.parseInt(ns);
