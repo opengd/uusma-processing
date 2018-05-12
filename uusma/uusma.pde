@@ -18,63 +18,62 @@ Float currentCompositionDelay;
 IntDict jmpStack;
 
 // Default Main config
-String mainConfig = "\"USE_CONFIG_REFRESH\": true," + 
-    "\"CONFIG_REFRESH_DELAY\": 10000," +
-    "\"MIDI_OUTPUT_DEVICE\": \"Microsoft GS Wavetable Synth\"," +
-    "\"MAIN_LOOP_DELAY_MAX\": 2000," +
-    "\"MAIN_LOOP_DELAY_MIN\": 100," +
-    "\"USE_MAIN_LOOP_DELAY\": true," +
-    "\"PLAY_PIECE\": false," +
-    "\"PIECE_REFRESH_DELAY\": 1000," +
-    "\"CURRENT_PIECE\": \"piece.json\"," +
-    "\"PLAY_COMPOSITION\": false," +
-    "\"COMPOSITION_REFRESH_DELAY\": 1000," +
-    "\"CURRENT_COMPOSITION\": \"composition.md\"," +
-    "\"USE_COMPOSITION_IN_MARKDOWN\": true," +
-    "\"ON_FALSE_CONFIG_REFRESH_DELAY\": 10000," +
-    "\"MAIN_CONFIG\": \"main.json\"," +
-    "\"NOTE_CONFIG\": \"note.json\"," +
-    "\"CC_CONFIG\": \"cc.json\"," +
-    "\"COMPOSITION_CLEAR_JMP_STACK_ON_EOF\": false," + 
-    "\"CONFIG\": [\"main.json\", \"note.json\", \"cc.json\"]," + 
-    "\"NAME\": \"\"," + 
-    "\"PARENT\": \"\"";
+String mainConfig = 
+  "\"USE_CONFIG_REFRESH\": true," + 
+  "\"CONFIG_REFRESH_DELAY\": 10000," +
+  "\"MIDI_OUTPUT_DEVICE\": \"Microsoft GS Wavetable Synth\"," +
+  "\"MAIN_LOOP_DELAY_MAX\": 2000," +
+  "\"MAIN_LOOP_DELAY_MIN\": 100," +
+  "\"USE_MAIN_LOOP_DELAY\": true," +
+  "\"PLAY_PIECE\": false," +
+  "\"PIECE_REFRESH_DELAY\": 1000," +
+  "\"CURRENT_PIECE\": \"piece.json\"," +
+  "\"PLAY_COMPOSITION\": false," +
+  "\"COMPOSITION_REFRESH_DELAY\": 1000," +
+  "\"CURRENT_COMPOSITION\": \"composition.md\"," +
+  "\"USE_COMPOSITION_IN_MARKDOWN\": true," +
+  "\"ON_FALSE_CONFIG_REFRESH_DELAY\": 10000," +
+  "\"COMPOSITION_CLEAR_JMP_STACK_ON_EOF\": false," + 
+  "\"CONFIG\": [\"main.json\", \"note.json\", \"cc.json\"]," + 
+  "\"NAME\": \"\"," + 
+  "\"PARENT\": \"\"";
 
 // Default Note config
-String noteConfig = "\"CHANNEL_MAX\": 16," +
-    "\"CHANNEL_MIN\": 1," + 
-    "\"PITCH_MAX\": 128," +
-    "\"PITCH_MIN\": 0," +
-    "\"VELOCITY_MAX\": 128," +
-    "\"VELOCITY_MIN\": 0," +
-    "\"NOTE_TIME_MAX\": 10000," +
-    "\"NOTE_TIME_MIN\": 2000," +
-    "\"NOTE_DELAY_MAX\": 10000," +
-    "\"NOTE_DELAY_MIN\": 2000," +
-    "\"GEN_NOTE_DELAY_MAX\": 10000," +
-    "\"GEN_NOTE_DELAY_MIN\": 0," +
-    "\"GEN_NB_NOTES_MAX\": 5," +
-    "\"GEN_NB_NOTES_MIN\": 0," +
-    "\"USE_SAME_CHANNEL_FOR_CURRENT_LOOP\": true," +
-    "\"USE_GEN_DELAY\": true," +
-    "\"CHANNEL\": 0," + 
-    "\"NOTE\": true";
+String noteConfig = 
+  "\"CHANNEL_MAX\": 16," +
+  "\"CHANNEL_MIN\": 1," + 
+  "\"PITCH_MAX\": 128," +
+  "\"PITCH_MIN\": 0," +
+  "\"VELOCITY_MAX\": 128," +
+  "\"VELOCITY_MIN\": 0," +
+  "\"NOTE_TIME_MAX\": 10000," +
+  "\"NOTE_TIME_MIN\": 2000," +
+  "\"NOTE_DELAY_MAX\": 10000," +
+  "\"NOTE_DELAY_MIN\": 2000," +
+  "\"GEN_NOTE_DELAY_MAX\": 10000," +
+  "\"GEN_NOTE_DELAY_MIN\": 0," +
+  "\"GEN_NB_NOTES_MAX\": 5," +
+  "\"GEN_NB_NOTES_MIN\": 0," +
+  "\"USE_SAME_CHANNEL_FOR_CURRENT_LOOP\": true," +
+  "\"USE_GEN_DELAY\": true," +
+  "\"CHANNEL\": 0," + 
+  "\"NOTE\": true";
 
 // Default CC config
-String ccConfig = "\"USE_CC_GEN\": true," +
-    "\"CC_GEN_NB_MAX\": 3," +
-    "\"CC_GEN_NB_MIN\": 1," +
-    "\"CC_GEN_CHANNEL_MAX\": 16," +
-    "\"CC_GEN_CHANNEL_MIN\": 0," +
-    "\"CC_GEN_NUMBER_MAX\": 120," +
-    "\"CC_GEN_NUMBER_MIN\": 0," +
-    "\"CC_GEN_VALUE_MAX\": 128," +
-    "\"CC_GEN_VALUE_MIN\": 0," +
-    "\"CC_GEN_DELAY_MAX\": 10000," +
-    "\"CC_GEN_DELAY_MIN\": 0," +
-    "\"CC_SET_LIST\": []," +
-    "\"CC_CHANNELS_BANKS\": []," + 
-    "\"CC\": false";
+String ccConfig = 
+  "\"CC_GEN_NB_MAX\": 3," +
+  "\"CC_GEN_NB_MIN\": 1," +
+  "\"CC_GEN_CHANNEL_MAX\": 16," +
+  "\"CC_GEN_CHANNEL_MIN\": 0," +
+  "\"CC_GEN_NUMBER_MAX\": 120," +
+  "\"CC_GEN_NUMBER_MIN\": 0," +
+  "\"CC_GEN_VALUE_MAX\": 128," +
+  "\"CC_GEN_VALUE_MIN\": 0," +
+  "\"CC_GEN_DELAY_MAX\": 10000," +
+  "\"CC_GEN_DELAY_MIN\": 0," +
+  "\"CC_SET_LIST\": []," +
+  "\"CC_CHANNELS_BANKS\": []," + 
+  "\"CC\": false";
 
 void setup() {
   size(400, 400);
