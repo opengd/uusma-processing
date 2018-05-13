@@ -21,7 +21,7 @@ IntDict jmpStack;
 String mainConfig = 
   "\"USE_CONFIG_REFRESH\": true," + 
   "\"CONFIG_REFRESH_DELAY\": 10000," +
-  "\"MIDI_OUTPUT_DEVICE\": \"Microsoft GS Wavetable Synth\"," +
+  "\"MIDI_OUTPUT_DEVICE\": [\"Microsoft GS Wavetable Synth\"]," +
   "\"MAIN_LOOP_DELAY_MAX\": 2000," +
   "\"MAIN_LOOP_DELAY_MIN\": 100," +
   "\"USE_MAIN_LOOP_DELAY\": true," +
@@ -85,7 +85,18 @@ void setup() {
 
   MidiBus.list(); // List all available Midi devices on STDOUT. This will show each device's index and name.
 
-  midiBus = new MidiBus(this, -1, configs.get(0).getConfig().getString("MIDI_OUTPUT_DEVICE")); // Create a new MidiBus
+  midiBus = new MidiBus(this); // Create a new MidiBus
+  
+  for(int i = 0; i < configs.get(0).getConfig().getJSONArray("MIDI_OUTPUT_DEVICE").size(); i++) {
+    
+    Object output = configs.get(0).getConfig().getJSONArray("MIDI_OUTPUT_DEVICE").get(i);
+    
+    if(output instanceof Integer)
+      midiBus.addOutput((int)output);
+    else if (output instanceof String) 
+      midiBus.addOutput((String)output);
+  }
+  
   
   jmpStack = new IntDict();
   
