@@ -158,6 +158,7 @@ void draw() {
   }
   
   for(int i = 0; i < notes.size(); i++) { // Loop all notes and check time and delay values
+
     if(notes.get(i).IsPlaying()) { // If the note is playing
     
       // Sub time value with delta time
@@ -166,6 +167,7 @@ void draw() {
       if(notes.get(i).time <= 0) { // Is time zero or below, then stop the note
         notes.get(i).Stop();
         notes.remove(i); // Remove note from ArrayList of notes
+        i--;
       }
     } else { // If the note is not playing
     
@@ -183,7 +185,8 @@ void draw() {
     
     if(controllerChanges.get(i).delay <= 0) {
       controllerChanges.get(i).Change();
-      controllerChanges.remove(i);
+      controllerChanges.remove(i);     
+      i--;
     }
   }
     
@@ -918,7 +921,7 @@ class Note {
   
   void Play() {
     if(!playing) {
-      midiBus.sendNoteOn(channel, pitch, velocity); // Send a Midi noteOn
+      midiBus.sendNoteOn(channel-1, pitch, velocity); // Send a Midi noteOn
       println("PLAY:NOTE:channel:" + this.channel + ":pitch:" + this.pitch + ":velocity:" + this.velocity + ":time:" + this.time + ":init_time:" + this.init_time + ":delay:" + this.delay + ":init_delay:" + this.init_delay);
     }
     
@@ -927,7 +930,7 @@ class Note {
   
   void Stop() {
     if(playing) {
-      midiBus.sendNoteOff(channel, pitch, velocity); // Send a Midi nodeOff
+      midiBus.sendNoteOff(channel-1, pitch, velocity); // Send a Midi nodeOff
       println("STOP:NOTE:channel:" + this.channel + ":pitch:" + this.pitch + ":velocity:" + this.velocity + ":time:" + this.time + ":init_time:" + this.init_time + ":delay:" + this.delay + ":init_delay:" + this.init_delay);
     }
     
@@ -951,7 +954,7 @@ class ControllerChange {
   }
   
   void Change() {
-    midiBus.sendControllerChange(channel, number, value);
+    midiBus.sendControllerChange(channel-1, number, value);
     changed = true;
   }
   
