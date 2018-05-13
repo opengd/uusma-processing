@@ -213,8 +213,8 @@ void draw() {
     }
   }
   
-  if(configs.get(0).getConfig().getBoolean("USE_MAIN_LOOP_DELAY"))
-    delay(int(random(configs.get(0).getConfig().getInt("MAIN_LOOP_DELAY_MIN"), configs.get(0).getConfig().getInt("MAIN_LOOP_DELAY_MAX")))); //Main loop delay
+  if(defaultConf.getBoolean("USE_MAIN_LOOP_DELAY"))
+    delay(int(random(defaultConf.getInt("MAIN_LOOP_DELAY_MIN"), defaultConf.getInt("MAIN_LOOP_DELAY_MAX")))); //Main loop delay
 }
 
 void delay(int time) {
@@ -223,9 +223,7 @@ void delay(int time) {
 }
 
 void CreateNotes(Config conf) {
-  
-  JSONObject jo = conf.getConfig(); 
-    
+      
   Integer channel = conf.getChannel() != null && conf.getChannel() != 0 ? conf.getChannel() : null;
       
   // How many new Notes should be generated on this loop
@@ -269,9 +267,7 @@ void CreateNotes(Config conf) {
 }
 
 void CreateCC(Config conf) {
-  
-  JSONObject jo = conf.getConfig(); 
-        
+          
   // How many new CC should be generated on this loop  
   int CC_GEN_NB_MIN = (int)getValue(conf, "CC_GEN_NB_MIN");
   int CC_GEN_NB_MAX = (int)getValue(conf, "CC_GEN_NB_MAX");
