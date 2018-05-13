@@ -177,10 +177,8 @@ void draw() {
       controllerChanges.remove(i);
     }
   }
-  
-  int startIndex = configs.size() > 1 ? 1 : 0;
-  
-  for(int i = startIndex; i < configs.size(); i++) {
+    
+  for(int i = 0; i < configs.size(); i++) {
     if(configs.get(i).delay > 0)
       configs.get(i).delay = configs.get(i).delay - delta;
     
