@@ -5,16 +5,9 @@ MidiBus midiBus; // The MidiBus
 ArrayList<Note> notes; // A bunch of notes
 ArrayList<ControllerChange> controllerChanges; // A bunch of cc's
 
-//JSONObject mainJson, noteJson, ccJson;
-
 ArrayList<Config> configs;
 
 int last, delta, configRefreshDelayTime, mainJsonCheckDelay;
-//Integer currentMovmentDelay, compositionJmpCounter, compositionCurrentRow;
-//String currentMovmentName;
-//float compositionDelta, compositionLast;
-//Float currentCompositionDelay;
-//IntDict jmpStack;
 
 // Default Main config
 String mainConfig = 
@@ -97,16 +90,12 @@ void setup() {
       midiBus.addOutput((String)output);
   }
   
-  //jmpStack = new IntDict();
-  
   notes = new ArrayList<Note>();
   controllerChanges = new ArrayList<ControllerChange>();
   
   last = millis();
   
   configRefreshDelayTime = configs.get(0).getConfig().getInt("CONFIG_REFRESH_DELAY");
-  //playPieceRefreshDelay = configs.get(0).getConfig().getInt("PIECE_REFRESH_DELAY");
-  //playCompositionRefreshDelay = configs.get(0).getConfig().getInt("COMPOSITION_REFRESH_DELAY");
   
   mainJsonCheckDelay = configs.get(0).getConfig().getInt("ON_FALSE_CONFIG_REFRESH_DELAY");
 }
@@ -454,78 +443,62 @@ void LoadConfig(boolean init) {
     }
   }
   
-  //ArrayList<Config> newconfs = new ArrayList<Config>();
+  for(int confIndex = 0; confIndex < configs.size(); confIndex++) {
   
-  //for(int counter = 0; counter < 2; counter++) {
-    for(int confIndex = 0; confIndex < configs.size(); confIndex++) {
-    
-      Config con = configs.get(confIndex);
-    //for(Config con: configs) {
-      
-      if(!con.getConfig().isNull("CONFIG")) {    
-        for(int i = 0; i < con.getConfig().getJSONArray("CONFIG").size(); i++) {
-          Object o = configs.get(0).getConfig().getJSONArray("CONFIG").get(i);
-          
-          JSONObject jo = null;
-          if(o instanceof JSONObject) {
-            jo = (JSONObject)o;
-          } else if (o instanceof String) {
-            try {
-              jo = loadJSONObject((String)o);
-            } catch(Exception e) {
-              println("Could not find config file: " + (String)o);
-            }
+    Config con = configs.get(confIndex);    
+    if(!con.getConfig().isNull("CONFIG")) {    
+      for(int i = 0; i < con.getConfig().getJSONArray("CONFIG").size(); i++) {
+        Object o = configs.get(0).getConfig().getJSONArray("CONFIG").get(i);
+        
+        JSONObject jo = null;
+        if(o instanceof JSONObject) {
+          jo = (JSONObject)o;
+        } else if (o instanceof String) {
+          try {
+            jo = loadJSONObject((String)o);
+          } catch(Exception e) {
+            println("Could not find config file: " + (String)o);
           }
+        }
+        
+        if(jo != null) {
+         
+          String name = GetName(jo);
+          Integer channel = GetChannel(jo);
           
-          if(jo != null) {
-           
-            String name = GetName(jo);
-            Integer channel = GetChannel(jo);
+          if(name != null || channel != null) {
             
-            if(name != null || channel != null) {
+            Boolean match = false;
+            
+            for(Config conf: configs) {
+              String confName = GetName(conf.getConfig());
+              Integer confChannel = GetChannel(conf.getConfig());
               
-              Boolean match = false;
-              
-              for(Config conf: configs) {
-                String confName = GetName(conf.getConfig());
-                Integer confChannel = GetChannel(conf.getConfig());
-                
-                if(DoParsConfig(name, channel, confName, confChannel)) {
-                  ParseJsonConfig(jo, conf.getConfig());
-                  match = true;
-                }
+              if(DoParsConfig(name, channel, confName, confChannel)) {
+                ParseJsonConfig(jo, conf.getConfig());
+                match = true;
               }
-              
-              if(!match) {
-                Config c = new Config(jo);
-                
-                ParseJsonConfig(jo, c.getConfig());
-                c.playPieceRefreshDelay = (int)getValue(c, "PIECE_REFRESH_DELAY");
-                c.playCompositionRefreshDelay = (int)getValue(c, "COMPOSITION_REFRESH_DELAY");
-                
-                configs.add(c);
-              }
-                          
-            } else {
-              ParseJsonConfig(jo, configs.get(0).getConfig());
             }
             
-            //println(jo);
+            if(!match) {
+              Config c = new Config(jo);
+              
+              ParseJsonConfig(jo, c.getConfig());
+              c.playPieceRefreshDelay = (int)getValue(c, "PIECE_REFRESH_DELAY");
+              c.playCompositionRefreshDelay = (int)getValue(c, "COMPOSITION_REFRESH_DELAY");
+              
+              configs.add(c);
+            }
+                        
+          } else {
+            ParseJsonConfig(jo, configs.get(0).getConfig());
           }
+          
+          //println(jo);
         }
       }
     }
-  //}
-  
-  //for(Config n: newconfs)
-  //  configs.add(n);
-  
-  //LoadConfigJson(mainJson, mainJson.getString("MAIN_CONFIG") , init, "data/main.json");
-  //if(init) // Do it twice if init to get changes to MAIN_CONFIG, NOTE_CONFIG, and CC_CONFIG
-  //  LoadConfigJson(mainJson, mainJson.getString("MAIN_CONFIG") , false, "data/main.json");
-    
-  //LoadConfigJson(noteJson, mainJson.getString("NOTE_CONFIG") , init, "data/note.json");
-  //LoadConfigJson(ccJson, mainJson.getString("CC_CONFIG") , init, "data/cc.json");
+  }
 }
 
 Boolean DoParsConfig(String name, Integer channel, String confName, Integer confChannel) {
