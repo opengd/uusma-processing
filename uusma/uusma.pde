@@ -156,6 +156,27 @@ void draw() {
         conf.playCompositionRefreshDelay = (int)getValue(conf, "COMPOSITION_REFRESH_DELAY");
       }  
     }
+    
+    if(conf.delay > 0)
+      conf.delay = conf.delay - delta;
+    
+    if(conf.delay <= 0) {
+      
+      Boolean NOTE = (Boolean)getValue(conf, "NOTE");
+      
+      if(NOTE)
+        CreateNotes(conf);
+        
+      Boolean CC = (Boolean)getValue(conf, "CC");
+      
+      if(CC)
+        CreateCC(conf);
+      
+      int GEN_NOTE_DELAY_MIN = (int)getValue(conf, "GEN_NOTE_DELAY_MIN");        
+      int GEN_NOTE_DELAY_MAX = (int)getValue(conf, "GEN_NOTE_DELAY_MAX");
+      
+      conf.delay = int(random(GEN_NOTE_DELAY_MIN, GEN_NOTE_DELAY_MAX));
+    }
   }
   
   for(int i = 0; i < notes.size(); i++) { // Loop all notes and check time and delay values
@@ -190,30 +211,7 @@ void draw() {
       i--;
     }
   }
-    
-  for(int i = 0; i < configs.size(); i++) {
-    if(configs.get(i).delay > 0)
-      configs.get(i).delay = configs.get(i).delay - delta;
-    
-    if(configs.get(i).delay <= 0) {
-      
-      Boolean NOTE = (Boolean)getValue(configs.get(i), "NOTE");
-      
-      if(NOTE)
-        CreateNotes(configs.get(i));
-        
-      Boolean CC = (Boolean)getValue(configs.get(i), "CC");
-      
-      if(CC)
-        CreateCC(configs.get(i));
-      
-      int GEN_NOTE_DELAY_MIN = (int)getValue(configs.get(i), "GEN_NOTE_DELAY_MIN");        
-      int GEN_NOTE_DELAY_MAX = (int)getValue(configs.get(i), "GEN_NOTE_DELAY_MAX");
-      
-      configs.get(i).delay = int(random(GEN_NOTE_DELAY_MIN, GEN_NOTE_DELAY_MAX));
-    }
-  }
-  
+ 
   if(defaultConf.getBoolean("USE_MAIN_LOOP_DELAY"))
     delay(int(random(defaultConf.getInt("MAIN_LOOP_DELAY_MIN"), defaultConf.getInt("MAIN_LOOP_DELAY_MAX")))); //Main loop delay
 }
