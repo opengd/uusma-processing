@@ -9,13 +9,12 @@ ArrayList<ControllerChange> controllerChanges; // A bunch of cc's
 
 ArrayList<Config> configs;
 
-int last, pieceLast, delta, pieceDelta, 
-  configRefreshDelayTime, playPieceRefreshDelay, playCompositionRefreshDelay, mainJsonCheckDelay;
-Integer currentMovmentDelay, compositionJmpCounter, compositionCurrentRow;
-String currentMovmentName;
-float compositionDelta, compositionLast;
-Float currentCompositionDelay;
-IntDict jmpStack;
+int last, delta, configRefreshDelayTime, mainJsonCheckDelay;
+//Integer currentMovmentDelay, compositionJmpCounter, compositionCurrentRow;
+//String currentMovmentName;
+//float compositionDelta, compositionLast;
+//Float currentCompositionDelay;
+//IntDict jmpStack;
 
 // Default Main config
 String mainConfig = 
@@ -98,7 +97,7 @@ void setup() {
       midiBus.addOutput((String)output);
   }
   
-  jmpStack = new IntDict();
+  //jmpStack = new IntDict();
   
   notes = new ArrayList<Note>();
   controllerChanges = new ArrayList<ControllerChange>();
@@ -106,8 +105,8 @@ void setup() {
   last = millis();
   
   configRefreshDelayTime = configs.get(0).getConfig().getInt("CONFIG_REFRESH_DELAY");
-  playPieceRefreshDelay = configs.get(0).getConfig().getInt("PIECE_REFRESH_DELAY");
-  playCompositionRefreshDelay = configs.get(0).getConfig().getInt("COMPOSITION_REFRESH_DELAY");
+  //playPieceRefreshDelay = configs.get(0).getConfig().getInt("PIECE_REFRESH_DELAY");
+  //playCompositionRefreshDelay = configs.get(0).getConfig().getInt("COMPOSITION_REFRESH_DELAY");
   
   mainJsonCheckDelay = configs.get(0).getConfig().getInt("ON_FALSE_CONFIG_REFRESH_DELAY");
 }
@@ -136,25 +135,27 @@ void draw() {
       mainJsonCheckDelay = defaultConf.getInt("ON_FALSE_CONFIG_REFRESH_DELAY");
     }
   }
-  
-  if(defaultConf.getBoolean("PLAY_PIECE")) {
     
-    playPieceRefreshDelay = playPieceRefreshDelay - delta;
+  for(Config conf: configs) {
+    if(!conf.getConfig().isNull("PLAY_PIECE") && conf.getConfig().getBoolean("PLAY_PIECE")) {
+      
+      conf.playPieceRefreshDelay = conf.playPieceRefreshDelay - delta;
+      
+      if(conf.playPieceRefreshDelay <= 0) {
+        PlayPiece(conf);
+        conf.playPieceRefreshDelay = (int)getValue(conf, "PIECE_REFRESH_DELAY");
+      }  
+    }
     
-    if(playPieceRefreshDelay <= 0) {
-      PlayPiece();
-      playPieceRefreshDelay = defaultConf.getInt("PIECE_REFRESH_DELAY");
-    }  
-  }
-  
-  if(defaultConf.getBoolean("PLAY_COMPOSITION")) {
-    
-    playCompositionRefreshDelay = playCompositionRefreshDelay - delta;
-    
-    if(playCompositionRefreshDelay <= 0) {
-      PlayComposition ();
-      playCompositionRefreshDelay = defaultConf.getInt("COMPOSITION_REFRESH_DELAY");
-    }  
+    if(!conf.getConfig().isNull("PLAY_COMPOSITION") && conf.getConfig().getBoolean("PLAY_COMPOSITION")) {
+      
+      conf.playCompositionRefreshDelay = conf.playCompositionRefreshDelay - delta;
+      
+      if(conf.playCompositionRefreshDelay <= 0) {
+        PlayComposition(conf);
+        conf.playCompositionRefreshDelay = (int)getValue(conf, "COMPOSITION_REFRESH_DELAY");
+      }  
+    }
   }
   
   for(int i = 0; i < notes.size(); i++) { // Loop all notes and check time and delay values
@@ -398,21 +399,26 @@ void CheckConfigRefreshSettings(){
   }
 }
 
-void PlayComposition() {
-  try {
-    String[] composition = loadStrings(configs.get(0).getConfig().getString("CURRENT_COMPOSITION"));
-    if(composition.length > 0)
-      ParseComposition(composition);
-  } catch(Exception e) {
-    println(e);
+void PlayComposition(Config conf) {
+  
+  if(!conf.getConfig().isNull("CURRENT_COMPOSITION")) {
+    try {
+      String[] composition = loadStrings(conf.getConfig().getString("CURRENT_COMPOSITION"));
+      if(composition.length > 0)
+        ParseComposition(composition, conf);
+    } catch(Exception e) {
+      println(e);
+    }
   }
 }
 
-void PlayPiece() {
-  try {
-    JSONObject json = loadJSONObject(configs.get(0).getConfig().getString("CURRENT_PIECE"));
-    ParseJsonPiece(json);
-  } catch(Exception e) {
+void PlayPiece(Config conf) {
+  if(!conf.getConfig().isNull("CURRENT_PIECE")) {
+    try {
+      JSONObject json = loadJSONObject(conf.getConfig().getString("CURRENT_PIECE"));
+      ParseJsonPiece(json, conf);
+    } catch(Exception e) {
+    }
   }
 }
 
@@ -422,6 +428,8 @@ void LoadConfig(boolean init) {
     // Create default config as index 0 in configs list
     Config c = new Config(parseJSONObject("{" + mainConfig + "," + noteConfig + "," + ccConfig + "}"));
     configs.add(c);
+    c.playPieceRefreshDelay = (int)getValue(c, "PIECE_REFRESH_DELAY");
+    c.playCompositionRefreshDelay = (int)getValue(c, "COMPOSITION_REFRESH_DELAY");
     
     Boolean mainexist = true; // Set to false is main.json do not exist
     
@@ -494,6 +502,8 @@ void LoadConfig(boolean init) {
                 Config c = new Config(jo);
                 
                 ParseJsonConfig(jo, c.getConfig());
+                c.playPieceRefreshDelay = (int)getValue(c, "PIECE_REFRESH_DELAY");
+                c.playCompositionRefreshDelay = (int)getValue(c, "COMPOSITION_REFRESH_DELAY");
                 
                 configs.add(c);
               }
@@ -563,13 +573,13 @@ void LoadConfigJson(JSONObject jsonConfig, String configFilename, boolean init, 
   }
 }
 
-void ParseComposition(String[] composition) {
+void ParseComposition(String[] composition, Config conf) {
   
   String currentMacro = null;
   
   Boolean insideComposition = false;
   
-  Boolean useCompositionInMarkdown = configs.get(0).getConfig().getBoolean("USE_COMPOSITION_IN_MARKDOWN");
+  Boolean useCompositionInMarkdown = (Boolean)getValue(conf, "USE_COMPOSITION_IN_MARKDOWN");
   
   for(int rowIndex = 0; rowIndex < composition.length; rowIndex++) {
     //println(rowIndex + " : " + composition[rowIndex]);
@@ -601,31 +611,31 @@ void ParseComposition(String[] composition) {
         time = -1;
       }
       
-      if(currentCompositionDelay == null && time >= 0) {
-        compositionDelta = 0;
-        compositionLast = millis() * 0.001;
+      if(conf.currentCompositionDelay == null && time >= 0) {
+        conf.compositionDelta = 0;
+        conf.compositionLast = millis() * 0.001;
         
-        if(compositionCurrentRow != null) {
-          currentCompositionDelay = (float)abs(time - compositionCurrentRow);
+        if(conf.compositionCurrentRow != null) {
+          conf.currentCompositionDelay = (float)abs(time - conf.compositionCurrentRow);
         } else {
-          currentCompositionDelay = (float)time;
+          conf.currentCompositionDelay = (float)time;
         }
         
-        compositionCurrentRow = time;
-        println("currentCompositionDelay: " + currentCompositionDelay);
-        println("compositionCurrentRow: " + compositionCurrentRow);
+        conf.compositionCurrentRow = time;
+        println("currentCompositionDelay: " + conf.currentCompositionDelay);
+        println("compositionCurrentRow: " + conf.compositionCurrentRow);
       }
       
-      if(currentCompositionDelay != null) {
+      if(conf.currentCompositionDelay != null) {
         float m = millis() * 0.001;
-        compositionDelta = m - compositionLast;
-        compositionLast = m;
+        conf.compositionDelta = m - conf.compositionLast;
+        conf.compositionLast = m;
         
-        currentCompositionDelay = currentCompositionDelay - compositionDelta;
+        conf.currentCompositionDelay = conf.currentCompositionDelay - conf.compositionDelta;
         //println("currentCompositionDelay: " + currentCompositionDelay);
       }
       
-      if(time >= 0 && currentCompositionDelay <= 0 && time == compositionCurrentRow && list.length > 1) {
+      if(time >= 0 && conf.currentCompositionDelay <= 0 && time == conf.compositionCurrentRow && list.length > 1) {
         try {
           JSONObject json = loadJSONObject(currentMacro);
           
@@ -636,12 +646,12 @@ void ParseComposition(String[] composition) {
             if(comCheck.equals("#")) 
               break;
            
-            ParseMovment(json, list[i]);
+            ParseMovment(json, list[i], conf);
           }              
         } catch(Exception e) {}
         
-        currentCompositionDelay = null;
-      } else if (time == -1 && currentCompositionDelay == null && list.length > 1 && list[0].toLowerCase().equals("jmp")) {          
+        conf.currentCompositionDelay = null;
+      } else if (time == -1 && conf.currentCompositionDelay == null && list.length > 1 && list[0].toLowerCase().equals("jmp")) {          
         
         int jmpTo = 0;
         try {
@@ -651,8 +661,8 @@ void ParseComposition(String[] composition) {
           continue;
         }
                 
-        if(jmpStack.hasKey("" + jmpTo)) { 
-          jmpStack.set("" + jmpTo, jmpStack.get("" + jmpTo)-1);
+        if(conf.jmpStack.hasKey("" + jmpTo)) { 
+          conf.jmpStack.set("" + jmpTo, conf.jmpStack.get("" + jmpTo)-1);
         } else {
           int jmpValue = 1;
           
@@ -664,75 +674,75 @@ void ParseComposition(String[] composition) {
             }
           }
           
-          jmpStack.set("" + jmpTo, jmpValue);
+          conf.jmpStack.set("" + jmpTo, jmpValue);
         }
         
-        if(jmpStack.get("" + jmpTo) == 0) {
-          jmpStack.remove("" + jmpTo);
+        if(conf.jmpStack.get("" + jmpTo) == 0) {
+          conf.jmpStack.remove("" + jmpTo);
         } else {
-          currentCompositionDelay = (float)jmpTo;
-          compositionCurrentRow = jmpTo;
-          println("jmpTo:" + jmpTo + ":currentJmpStackCounter:" + jmpStack.get("" + jmpTo));
+          conf.currentCompositionDelay = (float)jmpTo;
+          conf.compositionCurrentRow = jmpTo;
+          println("jmpTo:" + jmpTo + ":currentJmpStackCounter:" + conf.jmpStack.get("" + jmpTo));
         }             
       }
     }
     //println("(rowIndex+1): " + (rowIndex+2) + ":composition.length:" + composition.length);
-    if((currentCompositionDelay == null || currentCompositionDelay <= 0) && (rowIndex+1) == composition.length) {
-      compositionCurrentRow = null;
-      currentCompositionDelay = null;
+    if((conf.currentCompositionDelay == null || conf.currentCompositionDelay <= 0) && (rowIndex+1) == composition.length) {
+      conf.compositionCurrentRow = null;
+      conf.currentCompositionDelay = null;
       println("EOF");
       
-      if(configs.get(0).getConfig().getBoolean("COMPOSITION_CLEAR_JMP_STACK_ON_EOF")) {
-        jmpStack.clear();
+      if((Boolean)getValue(conf, "COMPOSITION_CLEAR_JMP_STACK_ON_EOF")) {
+        conf.jmpStack.clear();
         println("JMP Stack cleared");
       }
       
-    } else if(currentCompositionDelay != null && currentCompositionDelay <= 0) {
-      compositionCurrentRow = null;
-      currentCompositionDelay = null;
+    } else if(conf.currentCompositionDelay != null && conf.currentCompositionDelay <= 0) {
+      conf.compositionCurrentRow = null;
+      conf.currentCompositionDelay = null;
     }
   }
 }
 
-void ParseJsonPiece(JSONObject piece) {
+void ParseJsonPiece(JSONObject piece, Config conf) {
   java.util.Set pieceKeys = piece.keys();
   
-  if(pieceKeys.size() > 0 && currentMovmentDelay == null) {
-    currentMovmentDelay = GetNextMovmentDelay(pieceKeys, currentMovmentDelay);
-    currentMovmentName = "" + currentMovmentDelay;
+  if(pieceKeys.size() > 0 && conf.currentMovmentDelay == null) {
+    conf.currentMovmentDelay = GetNextMovmentDelay(pieceKeys, conf.currentMovmentDelay);
+    conf.currentMovmentName = "" + conf.currentMovmentDelay;
     
-    println("currentMovmentName: " + currentMovmentName);
+    println("currentMovmentName: " + conf.currentMovmentName);
     
-    pieceDelta = 0;
-    pieceLast = millis();
+    conf.pieceDelta = 0;
+    conf.pieceLast = millis();
   }
   
   int m = millis();
-  pieceDelta = m - pieceLast;
-  pieceLast = m;
+  conf.pieceDelta = m - conf.pieceLast;
+  conf.pieceLast = m;
   
   if(pieceKeys.size() > 0) {
     
-    currentMovmentDelay = currentMovmentDelay - pieceDelta;
+    conf.currentMovmentDelay = conf.currentMovmentDelay - conf.pieceDelta;
     //println("currentMovmentDelay: " + currentMovmentDelay);
     
-    if(currentMovmentDelay <= 0) {
+    if(conf.currentMovmentDelay <= 0) {
       
-      ParseMovment(piece, currentMovmentName);
+      ParseMovment(piece, conf.currentMovmentName, conf);
       
-      int currentDelay = Integer.parseInt(currentMovmentName);
+      int currentDelay = Integer.parseInt(conf.currentMovmentName);
       int next = GetNextMovmentDelay(pieceKeys, currentDelay);
        
-      currentMovmentDelay = (next < currentDelay) ? next : abs(next - currentDelay);
+      conf.currentMovmentDelay = (next < currentDelay) ? next : abs(next - currentDelay);
       
-      currentMovmentName = "" + next;
+      conf.currentMovmentName = "" + next;
       
-      println("new:movment:name:" + currentMovmentName + ":delay:" + currentMovmentDelay);
+      println("new:movment:name:" + conf.currentMovmentName + ":delay:" + conf.currentMovmentDelay);
     }
   } 
 }
 
-void ParseMovment(JSONObject piece, String movmentName) {
+void ParseMovment(JSONObject piece, String movmentName, Config conf) {
   
   JSONObject movement = (JSONObject)piece.get(movmentName);
   
@@ -740,13 +750,13 @@ void ParseMovment(JSONObject piece, String movmentName) {
   
   JSONObject json = movement.getJSONObject("main");
   if(json != null)
-    ParseJsonConfig(json, configs.get(0).getConfig());
+    ParseJsonConfig(json, conf.getConfig());
   json = movement.getJSONObject("note");
   if(json != null)
-    ParseJsonConfig(json, configs.get(0).getConfig());
+    ParseJsonConfig(json, conf.getConfig());
   json = movement.getJSONObject("cc");
   if(json != null)
-    ParseJsonConfig(json, configs.get(0).getConfig());
+    ParseJsonConfig(json, conf.getConfig());
   
   JSONArray ja = movement.getJSONArray("macro");
   if(ja != null && ja.size() > 0) {
@@ -759,7 +769,7 @@ void ParseMovment(JSONObject piece, String movmentName) {
           JSONObject mo = loadJSONObject(macro.getString("source"));
           JSONArray doMacros = macro.getJSONArray("do");
           for(int m = 0; m < doMacros.size(); m++) {
-            ParseMovment(mo, doMacros.getString(m));
+            ParseMovment(mo, doMacros.getString(m), conf);
           }
         } catch(Exception e) {
         }
@@ -964,15 +974,23 @@ class ControllerChange {
 }
 
 class Config {
-  int delay;
+  int delay, playCompositionRefreshDelay, playPieceRefreshDelay, pieceDelta, pieceLast;
   private JSONObject jsonConfig;
+  
+  Integer currentMovmentDelay, compositionJmpCounter, compositionCurrentRow;
+  String currentMovmentName;
+  float compositionDelta, compositionLast;
+  Float currentCompositionDelay;
+  IntDict jmpStack;
   
   Config() {
     this.jsonConfig = new JSONObject();
+    this.jmpStack = new IntDict();
   }
   
   Config(JSONObject jsonConfig) {
     this.jsonConfig = jsonConfig;
+    this.jmpStack = new IntDict();
   }
   
   JSONObject getConfig() {
