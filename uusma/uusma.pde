@@ -19,10 +19,10 @@ String mainConfig =
   "\"USE_MAIN_LOOP_DELAY\": true," +
   "\"PLAY_PIECE\": false," +
   "\"PIECE_REFRESH_DELAY\": 1000," +
-  "\"CURRENT_PIECE\": \"piece.json\"," +
+  "\"PIECE\": \"piece.json\"," +
   "\"PLAY_COMPOSITION\": false," +
   "\"COMPOSITION_REFRESH_DELAY\": 1000," +
-  "\"CURRENT_COMPOSITION\": \"composition.md\"," +
+  "\"COMPOSITION\": \"composition.md\"," +
   "\"USE_COMPOSITION_IN_MARKDOWN\": true," +
   "\"ON_FALSE_CONFIG_REFRESH_DELAY\": 10000," +
   "\"COMPOSITION_CLEAR_JMP_STACK_ON_EOF\": false," + 
@@ -120,7 +120,7 @@ void draw() {
   } else {
     mainJsonCheckDelay = mainJsonCheckDelay - delta;
     if(mainJsonCheckDelay <= 0) {
-      //CheckConfigRefreshSettings();
+      CheckConfigRefreshSettings();
       mainJsonCheckDelay = defaultConf.getInt("ON_FALSE_CONFIG_REFRESH_DELAY");
     }
   }
@@ -364,25 +364,36 @@ Object getParentValue(JSONObject jo, String keyname) {
 
 void CheckConfigRefreshSettings(){
     try {
-    JSONObject json = loadJSONObject("main.json");
-    
-    if(!configs.get(0).getConfig().getBoolean("PLAY_PIECE") && !configs.get(0).getConfig().getBoolean("PLAY_COMPOSITION")) {
-      if(json.get("USE_CONFIG_REFRESH") != null && json.getBoolean("USE_CONFIG_REFRESH") != configs.get(0).getConfig().getBoolean("USE_CONFIG_REFRESH")) {
-        println("USE_CONFIG_REFRESH:change:from:" + configs.get(0).getConfig().getBoolean("USE_CONFIG_REFRESH") + ":to:" + json.getBoolean("USE_CONFIG_REFRESH"));
-        configs.get(0).getConfig().setBoolean("USE_CONFIG_REFRESH", json.getBoolean("USE_CONFIG_REFRESH"));
-      }
-    }
-    
-    if(json.get("PLAY_PIECE") != null && json.getBoolean("PLAY_PIECE") != configs.get(0).getConfig().getBoolean("PLAY_PIECE")) {
-      println("PLAY_PIECE:change:from:" + configs.get(0).getConfig().getBoolean("PLAY_PIECE") + ":to:" + json.getBoolean("PLAY_PIECE"));
-      configs.get(0).getConfig().setBoolean("PLAY_PIECE", json.getBoolean("PLAY_PIECE"));
-    }
-    
-    if(json.get("PLAY_COMPOSITION") != null && json.getBoolean("PLAY_COMPOSITION") != configs.get(0).getConfig().getBoolean("PLAY_COMPOSITION")) {
-      println("PLAY_COMPOSITION:change:from:" + configs.get(0).getConfig().getBoolean("PLAY_COMPOSITION") + ":to:" + json.getBoolean("PLAY_COMPOSITION"));
-      configs.get(0).getConfig().setBoolean("PLAY_COMPOSITION", json.getBoolean("PLAY_COMPOSITION"));
-    } 
+      for(Config con: configs) {   
+        if(!con.getConfig().isNull("CONFIG")) {    
+          for(int i = 0; i < con.getConfig().getJSONArray("CONFIG").size(); i++) {
+            Object o = con.getConfig().getJSONArray("CONFIG").get(i);
+
+            JSONObject jo = null;
+            if(o instanceof JSONObject) {
+              jo = (JSONObject)o;
+            } else if (o instanceof String) {
+              try {
+                jo = loadJSONObject((String)o);
+              } catch(Exception e) {
+                println("Could not find config file: " + (String)o);
+              }
+            }
+            
+            if(jo != null) {
+             
+              String name = GetName(jo);
+              Integer channel = GetChannel(jo);
+              
+              if(name == null && channel == null) {
+                ParseJsonConfig(jo, configs.get(0).getConfig());
+              }              
+            }
+          }
+        }
+      }     
   } catch(Exception e) {
+    println(e);
   }
 }
 
@@ -448,7 +459,7 @@ void LoadConfig(boolean init) {
     Config con = configs.get(confIndex);    
     if(!con.getConfig().isNull("CONFIG")) {    
       for(int i = 0; i < con.getConfig().getJSONArray("CONFIG").size(); i++) {
-        Object o = configs.get(0).getConfig().getJSONArray("CONFIG").get(i);
+        Object o = con.getConfig().getJSONArray("CONFIG").get(i);
         
         JSONObject jo = null;
         if(o instanceof JSONObject) {
@@ -476,6 +487,11 @@ void LoadConfig(boolean init) {
               
               if(DoParsConfig(name, channel, confName, confChannel)) {
                 ParseJsonConfig(jo, conf.getConfig());
+                println("**********DoParsConfig**********");
+                println(name + ":" + confName);
+                println(channel + ":" + confChannel);
+                println(jo);
+                println("**************************");
                 match = true;
               }
             }
