@@ -28,7 +28,8 @@ String mainConfig =
   "\"COMPOSITION_CLEAR_JMP_STACK_ON_EOF\": false," + 
   "\"CONFIG\": [\"main.json\", \"note.json\", \"cc.json\"]," + 
   "\"NAME\": \"\"," + 
-  "\"PARENT\": \"\"";
+  "\"PARENT\": \"\"," +
+  "\"REMOVE\": false";
 
 // Default Note config
 String noteConfig = 
@@ -481,7 +482,10 @@ void LoadConfig(boolean init) {
             
             Boolean match = false;
             
-            for(Config conf: configs) {
+            //for(Config conf: configs) {
+            for(int innerIdex = 0; innerIdex < configs.size(); innerIdex++) {
+              Config conf = configs.get(innerIdex);
+              
               String confName = GetName(conf.getConfig());
               Integer confChannel = GetChannel(conf.getConfig());
               
@@ -492,7 +496,14 @@ void LoadConfig(boolean init) {
                 println(channel + ":" + confChannel);
                 println(jo);
                 println("**************************");
-                match = true;
+                
+                if(conf.toRemove()) { // If the REMOVE is set, then remove the config from list of configs
+                  configs.remove(innerIdex);
+                  innerIdex--;
+                  println("REMOVE config");
+                }
+                else 
+                  match = true;
               }
             }
             
@@ -500,10 +511,12 @@ void LoadConfig(boolean init) {
               Config c = new Config(jo);
               
               ParseJsonConfig(jo, c.getConfig());
-              c.playPieceRefreshDelay = (int)getValue(c, "PIECE_REFRESH_DELAY");
-              c.playCompositionRefreshDelay = (int)getValue(c, "COMPOSITION_REFRESH_DELAY");
-              
-              configs.add(c);
+              if(!c.toRemove()) {
+                c.playPieceRefreshDelay = (int)getValue(c, "PIECE_REFRESH_DELAY");
+                c.playCompositionRefreshDelay = (int)getValue(c, "COMPOSITION_REFRESH_DELAY");
+                
+                configs.add(c);
+              }
             }
                         
           } else {
@@ -515,6 +528,12 @@ void LoadConfig(boolean init) {
       }
     }
   }
+  
+  println("configs:size:" + configs.size());
+  
+  if(configs.size() == 0) // If 0 config have been removed, create default config again 
+    LoadConfig(true);
+  
 }
 
 Boolean DoParsConfig(String name, Integer channel, String confName, Integer confChannel) {
@@ -804,6 +823,11 @@ void ParseJsonConfig(JSONObject json, JSONObject config) {
     Object jv = json.get(name);      
     Object cv = config.get(name);
     
+    if(cv == null) { // If vars not in conf get parent or default value if it exist
+      cv = getValue(new Config(config), name);
+      println("null: " + name + ":" + cv);
+    }
+    
     if(cv instanceof Integer && jv instanceof Integer && (int)cv != (int)jv) {
       config.setInt(name, (int)jv);
       println(name + ":change:from:" + (int)cv + ":to:" + (int)jv);
@@ -1009,5 +1033,12 @@ class Config {
       return this.jsonConfig.getString("PARENT");
     
     return null;
+  }
+  
+  Boolean toRemove() {
+    if(!this.jsonConfig.isNull("REMOVE"))
+      return this.jsonConfig.getBoolean("REMOVE");
+    
+    return false;
   }
 }
