@@ -456,85 +456,97 @@ void LoadConfig(boolean init) {
   }
   
   for(int confIndex = 0; confIndex < configs.size(); confIndex++) {
-  
     Config con = configs.get(confIndex);    
-    if(!con.getConfig().isNull("CONFIG")) {    
-      for(int i = 0; i < con.getConfig().getJSONArray("CONFIG").size(); i++) {
-        Object o = con.getConfig().getJSONArray("CONFIG").get(i);
-        
-        JSONObject jo = null;
-        if(o instanceof JSONObject) {
-          jo = (JSONObject)o;
-        } else if (o instanceof String) {
-          try {
-            jo = loadJSONObject((String)o);
-          } catch(Exception e) {
-            println("Could not find config file: " + (String)o);
-          }
-        }
-        
-        if(jo != null) {
-         
-          String name = GetName(jo);
-          Integer channel = GetChannel(jo);
-          
-          if(name != null || channel != null) {
-            
-            Boolean match = false;
-            
-            //for(Config conf: configs) {
-            for(int innerIdex = 0; innerIdex < configs.size(); innerIdex++) {
-              Config conf = configs.get(innerIdex);
-              
-              String confName = GetName(conf.getConfig());
-              Integer confChannel = GetChannel(conf.getConfig());
-              
-              if(DoParsConfig(name, channel, confName, confChannel)) {
-                ParseJsonConfig(jo, conf.getConfig());
-                println("**********DoParsConfig**********");
-                println(name + ":" + confName);
-                println(channel + ":" + confChannel);
-                println(jo);
-                println("**************************");
-                
-                if(conf.toRemove()) { // If the REMOVE is set, then remove the config from list of configs
-                  configs.remove(innerIdex);
-                  innerIdex--;
-                  println("REMOVE config");
-                }
-                else 
-                  match = true;
-              }
-            }
-            
-            if(!match) {
-              Config c = new Config(jo);
-              
-              ParseJsonConfig(jo, c.getConfig());
-              if(!c.toRemove()) {
-                c.playPieceRefreshDelay = (int)getValue(c, "PIECE_REFRESH_DELAY");
-                c.playCompositionRefreshDelay = (int)getValue(c, "COMPOSITION_REFRESH_DELAY");
-                
-                configs.add(c);
-              }
-            }
-                        
-          } else {
-            ParseJsonConfig(jo, configs.get(0).getConfig());
-          }
-          
-          //println(jo);
-        }
-      }
-    }
+    confIndex = CreateConfig(con, confIndex);
   }
   
   println("configs:size:" + configs.size());
+  
+  for(Config con: configs)
+    println(con.getConfig());
   
   if(configs.size() == 0) // If 0 config have been removed, create default config again 
     LoadConfig(true);
   
 }
+
+int CreateConfig(Config con, int confIndex) {
+  
+  if(!con.getConfig().isNull("CONFIG")) {    
+    for(int i = 0; i < con.getConfig().getJSONArray("CONFIG").size(); i++) {
+      Object o = con.getConfig().getJSONArray("CONFIG").get(i);
+      JSONObject jo = null;
+      if(o instanceof JSONObject) {
+        jo = (JSONObject)o;
+      } else if (o instanceof String) {
+        try {
+          jo = loadJSONObject((String)o);
+        } catch(Exception e) {
+          println("Could not find config file: " + (String)o);
+        }
+      }
+      
+      if(jo != null) {
+       
+        String name = GetName(jo);
+        Integer channel = GetChannel(jo);
+        
+        if(name != null || channel != null) {
+          
+          Boolean match = false;
+          
+          //for(Config conf: configs) {
+          for(int innerIdex = 0; innerIdex < configs.size(); innerIdex++) {
+            Config conf = configs.get(innerIdex);
+            
+            String confName = GetName(conf.getConfig());
+            Integer confChannel = GetChannel(conf.getConfig());
+            
+            if(DoParsConfig(name, channel, confName, confChannel)) {
+              ParseJsonConfig(jo, conf.getConfig());
+              println("**********DoParsConfig**********");
+              println(name + ":" + confName);
+              println(channel + ":" + confChannel);
+              println(jo);
+              println("**************************");
+              
+              if(conf.toRemove()) { // If the REMOVE is set, then remove the config from list of configs
+                configs.remove(innerIdex);
+                innerIdex--;
+                confIndex--;
+                println("REMOVE config");
+              }
+              else 
+                match = true;
+            }
+          }
+          
+          if(!match) {
+            Config c = new Config(jo);
+            
+            ParseJsonConfig(jo, c.getConfig());
+            if(!c.toRemove()) {
+              c.playPieceRefreshDelay = (int)getValue(c, "PIECE_REFRESH_DELAY");
+              c.playCompositionRefreshDelay = (int)getValue(c, "COMPOSITION_REFRESH_DELAY");
+              
+              configs.add(c);
+            }
+            
+            confIndex = CreateConfig(c, confIndex);
+          }
+                      
+        } else {
+          ParseJsonConfig(jo, configs.get(0).getConfig());
+        }
+        
+        //println(jo);
+      }
+    }
+  }
+  
+  return confIndex;
+}
+
 
 Boolean DoParsConfig(String name, Integer channel, String confName, Integer confChannel) {
   if(name != null && channel != null && confName != null && confName.equals(name) && confChannel != null && confChannel == channel)
