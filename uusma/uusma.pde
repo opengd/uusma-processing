@@ -51,7 +51,8 @@ String noteConfig =
   "\"USE_GEN_DELAY\": true," +
   "\"CHANNEL\": 0," + 
   "\"NOTE\": true," +
-  "\"PARENT_CHANNEL\": 0";
+  "\"PARENT_CHANNEL\": 0," + 
+  "\"MONO\": false";
 
 // Default CC config
 String ccConfig = 
@@ -406,9 +407,9 @@ void CheckConfigRefreshSettings(){
 
 void PlayComposition(Config conf) {
   
-  if(!conf.getConfig().isNull("CURRENT_COMPOSITION")) {
+  if(!((String)getValue(conf, "COMPOSITION")).equals("")) {
     try {
-      String[] composition = loadStrings(conf.getConfig().getString("CURRENT_COMPOSITION"));
+      String[] composition = loadStrings((String)getValue(conf, "COMPOSITION"));
       if(composition.length > 0)
         ParseComposition(composition, conf);
     } catch(Exception e) {
@@ -418,9 +419,9 @@ void PlayComposition(Config conf) {
 }
 
 void PlayPiece(Config conf) {
-  if(!conf.getConfig().isNull("CURRENT_PIECE")) {
+  if(!((String)getValue(conf, "PIECE")).equals("")) {
     try {
-      JSONObject json = loadJSONObject(conf.getConfig().getString("CURRENT_PIECE"));
+      JSONObject json = loadJSONObject((String)getValue(conf, "PIECE"));
       ParseJsonPiece(json, conf);
     } catch(Exception e) {
     }
