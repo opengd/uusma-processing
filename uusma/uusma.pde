@@ -436,6 +436,11 @@ void LoadConfig(boolean init) {
     c.playPieceRefreshDelay = (int)getValue(c, "PIECE_REFRESH_DELAY");
     c.playCompositionRefreshDelay = (int)getValue(c, "COMPOSITION_REFRESH_DELAY");
     
+    int GEN_NOTE_DELAY_MIN = (int)getValue(c, "GEN_NOTE_DELAY_MIN");        
+    int GEN_NOTE_DELAY_MAX = (int)getValue(c, "GEN_NOTE_DELAY_MAX");
+    
+    c.delay = int(random(GEN_NOTE_DELAY_MIN, GEN_NOTE_DELAY_MAX));
+    
     Boolean mainexist = true; // Set to false is main.json do not exist
     
     try {
@@ -534,6 +539,11 @@ int CreateConfig(Config con, int confIndex) {
             if(!c.toRemove()) {
               c.playPieceRefreshDelay = (int)getValue(c, "PIECE_REFRESH_DELAY");
               c.playCompositionRefreshDelay = (int)getValue(c, "COMPOSITION_REFRESH_DELAY");
+              
+              int GEN_NOTE_DELAY_MIN = (int)getValue(c, "GEN_NOTE_DELAY_MIN");        
+              int GEN_NOTE_DELAY_MAX = (int)getValue(c, "GEN_NOTE_DELAY_MAX");
+              
+              c.delay = int(random(GEN_NOTE_DELAY_MIN, GEN_NOTE_DELAY_MAX));
               
               configs.add(c);
             }
