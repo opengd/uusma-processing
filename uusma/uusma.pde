@@ -28,7 +28,7 @@ String mainConfig =
   "\"COMPOSITION_CLEAR_JMP_STACK_ON_EOF\": false," + 
   "\"CONFIG\": [\"main.json\", \"note.json\", \"cc.json\"]," + 
   "\"NAME\": \"\"," + 
-  "\"PARENT\": \"\"," +
+  "\"PARENT_NAME\": \"\"," +
   "\"REMOVE\": false";
 
 // Default Note config
@@ -50,7 +50,8 @@ String noteConfig =
   "\"USE_SAME_CHANNEL_FOR_CURRENT_LOOP\": true," +
   "\"USE_GEN_DELAY\": true," +
   "\"CHANNEL\": 0," + 
-  "\"NOTE\": true";
+  "\"NOTE\": true," +
+  "\"PARENT_CHANNEL\": 0";
 
 // Default CC config
 String ccConfig = 
@@ -337,19 +338,24 @@ void CreateCC(Config conf) {
 
 Object getParentValue(JSONObject jo, String keyname) {
     
-  if(!jo.isNull("PARENT") && !jo.getString("PARENT").equals("")) {
+  if(!jo.isNull("PARENT_NAME") && !jo.getString("PARENT_NAME").equals("")) {
     for(Config conf: configs) {
-      if(conf.getName() != null && conf.getName().equals(jo.getString("PARENT"))) {
+      if(conf.getName() != null && conf.getName().equals(jo.getString("PARENT_NAME"))) {
         if(!conf.getConfig().isNull(keyname)) {
           return conf.getConfig().get(keyname);
-        } else if(conf.getParent() != null) {
+        } else if(conf.getParentName() != null || conf.getParentChannel() != null) {
           return getParentValue(conf.getConfig(), keyname);
         }
-        
-      } else if(conf.getChannel() != null && conf.getChannel() == Integer.parseInt(jo.getString("PARENT"))) {
+      } 
+    }
+  }
+  
+  if(!jo.isNull("PARENT_CHANNEL") && jo.getInt("PARENT_CHANNEL") > 0) {
+    for(Config conf: configs) {
+      if(conf.getChannel() != null && conf.getChannel() == jo.getInt("PARENT_CHANNEL")) {
         if(!conf.getConfig().isNull(keyname)) {
           return conf.getConfig().get(keyname);
-        } else if(conf.getParent() != null) {
+        } else if(conf.getParentChannel() != null || conf.getParentName() != null) {
           return getParentValue(conf.getConfig(), keyname);
         }
       }
@@ -1040,9 +1046,16 @@ class Config {
     return null;
   }
   
-  String getParent() {
-    if(!this.jsonConfig.isNull("PARENT") && !this.jsonConfig.getString("PARENT").equals(""))
-      return this.jsonConfig.getString("PARENT");
+  String getParentName() {
+    if(!this.jsonConfig.isNull("PARENT_NAME") && !this.jsonConfig.getString("PARENT_NAME").equals(""))
+      return this.jsonConfig.getString("PARENT_NAME");
+    
+    return null;
+  }
+  
+  Integer getParentChannel() {
+    if(!this.jsonConfig.isNull("PARENT_CHANNEL"))
+      return this.jsonConfig.getInt("PARENT_CHANNEL");
     
     return null;
   }
