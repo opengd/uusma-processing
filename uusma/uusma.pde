@@ -2,8 +2,8 @@ import themidibus.*; //Import the library
 
 MidiBus midiBus; // The MidiBus
 
-ArrayList<Note> notes; // A bunch of notes
-ArrayList<ControllerChange> controllerChanges; // A bunch of cc's
+//ArrayList<Note> notes; // A bunch of notes
+//ArrayList<ControllerChange> controllerChanges; // A bunch of cc's
 
 ArrayList<Config> configs;
 
@@ -93,8 +93,8 @@ void setup() {
       midiBus.addOutput((String)output);
   }
   
-  notes = new ArrayList<Note>();
-  controllerChanges = new ArrayList<ControllerChange>();
+  //notes = new ArrayList<Note>();
+  //controllerChanges = new ArrayList<ControllerChange>();
   
   last = millis();
   
@@ -171,39 +171,41 @@ void draw() {
     }
   }
   
-  for(int i = 0; i < notes.size(); i++) { // Loop all notes and check time and delay values
-
-    if(notes.get(i).IsPlaying()) { // If the note is playing
-    
-      // Sub time value with delta time
-      notes.get(i).time = notes.get(i).time - delta;
+  for(Config conf: configs) {
+    for(int i = 0; i < conf.notes.size(); i++) { // Loop all notes and check time and delay values
+  
+      if(conf.notes.get(i).IsPlaying()) { // If the note is playing
       
-      if(notes.get(i).time <= 0) { // Is time zero or below, then stop the note
-        notes.get(i).Stop();
-        notes.remove(i); // Remove note from ArrayList of notes
+        // Sub time value with delta time
+        conf.notes.get(i).time = conf.notes.get(i).time - delta;
+        
+        if(conf.notes.get(i).time <= 0) { // Is time zero or below, then stop the note
+          conf.notes.get(i).Stop();
+          conf.notes.remove(i); // Remove note from ArrayList of notes
+          i--;
+        }
+      } else { // If the note is not playing
+      
+        // Sub delay value with delta time
+        conf.notes.get(i).delay = conf.notes.get(i).delay - delta;
+        
+        if(conf.notes.get(i).delay <= 0) { // If delay is zero or below, then play the note
+          conf.notes.get(i).Play();
+        }
+      }
+    }
+    
+    for(int i = 0; i < conf.controllerChanges.size(); i++) {
+      conf.controllerChanges.get(i).delay = conf.controllerChanges.get(i).delay - delta;
+      
+      if(conf.controllerChanges.get(i).delay <= 0) {
+        conf.controllerChanges.get(i).Change();
+        conf.controllerChanges.remove(i);     
         i--;
       }
-    } else { // If the note is not playing
-    
-      // Sub delay value with delta time
-      notes.get(i).delay = notes.get(i).delay - delta;
-      
-      if(notes.get(i).delay <= 0) { // If delay is zero or below, then play the note
-        notes.get(i).Play();
-      }
     }
   }
-  
-  for(int i = 0; i < controllerChanges.size(); i++) {
-    controllerChanges.get(i).delay = controllerChanges.get(i).delay - delta;
-    
-    if(controllerChanges.get(i).delay <= 0) {
-      controllerChanges.get(i).Change();
-      controllerChanges.remove(i);     
-      i--;
-    }
-  }
- 
+   
   if(defaultConf.getBoolean("USE_MAIN_LOOP_DELAY"))
     delay(int(random(defaultConf.getInt("MAIN_LOOP_DELAY_MIN"), defaultConf.getInt("MAIN_LOOP_DELAY_MAX")))); //Main loop delay
 }
@@ -214,7 +216,10 @@ void delay(int time) {
 }
 
 void CreateNotes(Config conf) {
-      
+  
+  if((Boolean)getValue(conf, "MONO") && conf.notes.size() > 0)
+    return;
+    
   Integer channel = conf.getChannel() != null && conf.getChannel() != 0 ? conf.getChannel() : null;
       
   // How many new Notes should be generated on this loop
@@ -251,7 +256,7 @@ void CreateNotes(Config conf) {
       int(random(VELOCITY_MIN, VELOCITY_MAX)), // Generate a random velocity value for the new note
       int(random(NOTE_TIME_MIN, NOTE_TIME_MAX)), 
       int(random(NOTE_DELAY_MIN, NOTE_DELAY_MAX)));
-    notes.add(newNote);
+    conf.notes.add(newNote);
     
     newNumberOfNotes--;
   }
@@ -328,7 +333,7 @@ void CreateCC(Config conf) {
       int CC_GEN_DELAY_MAX = (int)getValue(conf, "CC_GEN_DELAY_MAX");
       
       ControllerChange cc = new ControllerChange(channel, number, value, int(random(CC_GEN_DELAY_MIN, CC_GEN_DELAY_MAX)));
-      controllerChanges.add(cc);
+      conf.controllerChanges.add(cc);
     } else {
       println("Could not get values from cc set list");
     }
@@ -1023,14 +1028,23 @@ class Config {
   Float currentCompositionDelay;
   IntDict jmpStack;
   
+  ArrayList<Note> notes; // A bunch of notes
+  ArrayList<ControllerChange> controllerChanges; // A bunch of cc's
+  
   Config() {
     this.jsonConfig = new JSONObject();
     this.jmpStack = new IntDict();
+    
+    this.notes = new ArrayList<Note>();
+    this.controllerChanges = new ArrayList<ControllerChange>();
   }
   
   Config(JSONObject jsonConfig) {
     this.jsonConfig = jsonConfig;
     this.jmpStack = new IntDict();
+    
+    this.notes = new ArrayList<Note>();
+    this.controllerChanges = new ArrayList<ControllerChange>();
   }
   
   JSONObject getConfig() {
