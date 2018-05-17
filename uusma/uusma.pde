@@ -7,7 +7,7 @@ MidiBus midiBus; // The MidiBus
 
 ArrayList<Config> configs;
 
-int last, delta, configRefreshDelayTime, mainJsonCheckDelay;
+int last, delta, configRefreshDelayTime, mainJsonCheckDelay, defaultConfigSize;
 
 // Default Main config
 String mainConfig = 
@@ -437,8 +437,10 @@ void LoadConfig(boolean init) {
   if(init) {
     
     // Create default config as index 0 in configs list
-    Config c = new Config(parseJSONObject("{" + mainConfig + "," + noteConfig + "," + ccConfig + "}"));
-    configs.add(c);
+    Config c = new Config(parseJSONObject("{" + mainConfig + "," + noteConfig + "," + ccConfig + "}"));    
+    defaultConfigSize = c.size();
+    
+    configs.add(0, c);
     c.playPieceRefreshDelay = (int)getValue(c, "PIECE_REFRESH_DELAY");
     c.playCompositionRefreshDelay = (int)getValue(c, "COMPOSITION_REFRESH_DELAY");
     
@@ -449,26 +451,33 @@ void LoadConfig(boolean init) {
     
     Boolean mainexist = true; // Set to false is main.json do not exist
     
-    try {
-      loadJSONObject("main.json");
-    } catch (Exception e) {
+    try {      
+      loadJSONObject("main.json"); // Check if main.json exist, if not create the file
+    } catch(NullPointerException e) {
       // Could not find main.json, create main.json using default main config
+      println("Could not find main.json, creating file based on default config.");
       saveJSONObject(parseJSONObject("{" + mainConfig + "}"), "data/main.json");
       mainexist = false; // main.json did not exist, set to false
+    } catch (Exception e) {
+      println("There was a error while parsing main.json, please check if there is anything wrong in the file: " + e.getMessage());
     }
     
     try {
       loadJSONObject("note.json"); // Check if note.json exist
-    } catch (Exception e) {
+    } catch (NullPointerException e) {
       if(!mainexist) // Create default Note config json file if note.json and main.json do not exist
         saveJSONObject(parseJSONObject("{" + noteConfig + "}"), "data/note.json");
+    } catch (Exception e) {
+      println("There was a error while parsing note.json, please check if there is anything wrong in the file: " + e.getMessage());
     }
     
     try {
       loadJSONObject("cc.json"); // Check if cc.json exist
-    } catch (Exception e) {
+    } catch (NullPointerException e) {
       if(!mainexist) // Create default CC config json file if cc.json and main.json do not exist
         saveJSONObject(parseJSONObject("{" + ccConfig + "}"), "data/cc.json");
+    } catch (Exception e) {
+      println("There was a error while parsing cc.json, please check if there is anything wrong in the file: " + e.getMessage());
     }
   }
   
@@ -482,9 +491,10 @@ void LoadConfig(boolean init) {
   for(Config con: configs)
     println(con.getConfig());
   
-  if(configs.size() == 0) // If 0 config have been removed, create default config again 
+  if(configs.size() == 0 || configs.get(0).size() != defaultConfigSize) {// If 0 config have been removed, create default config again 
+    println("Creating new default config");
     LoadConfig(true);
-  
+  }
 }
 
 int CreateConfig(Config con, int confIndex) {
@@ -498,8 +508,10 @@ int CreateConfig(Config con, int confIndex) {
       } else if (o instanceof String) {
         try {
           jo = loadJSONObject((String)o);
-        } catch(Exception e) {
+        } catch(NullPointerException e) {
           println("Could not find config file: " + (String)o);
+        } catch (Exception e) {
+          println("There was a error while parsing " + (String)o + ", please check if there is anything wrong in the file: " + e.getMessage());
         }
       }
       
@@ -1021,6 +1033,7 @@ class ControllerChange {
 class Config {
   int delay, playCompositionRefreshDelay, playPieceRefreshDelay, pieceDelta, pieceLast;
   private JSONObject jsonConfig;
+  private int size;
   
   Integer currentMovmentDelay, compositionJmpCounter, compositionCurrentRow;
   String currentMovmentName;
@@ -1037,6 +1050,7 @@ class Config {
     
     this.notes = new ArrayList<Note>();
     this.controllerChanges = new ArrayList<ControllerChange>();
+    this.size = 0;
   }
   
   Config(JSONObject jsonConfig) {
@@ -1045,6 +1059,8 @@ class Config {
     
     this.notes = new ArrayList<Note>();
     this.controllerChanges = new ArrayList<ControllerChange>();
+    
+    this.size = this.jsonConfig.keys().size();
   }
   
   JSONObject getConfig() {
@@ -1053,6 +1069,7 @@ class Config {
   
   void setConfig(JSONObject jsonConfig) {
     this.jsonConfig = jsonConfig;
+    this.size = this.jsonConfig.keys().size();
   }
   
   Integer getChannel() {
@@ -1090,5 +1107,9 @@ class Config {
       return this.jsonConfig.getBoolean("REMOVE");
     
     return false;
+  }
+  
+  int size() {
+    return size;
   }
 }
