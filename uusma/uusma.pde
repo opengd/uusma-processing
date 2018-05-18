@@ -2,9 +2,6 @@ import themidibus.*; //Import the library
 
 MidiBus midiBus; // The MidiBus
 
-//ArrayList<Note> notes; // A bunch of notes
-//ArrayList<ControllerChange> controllerChanges; // A bunch of cc's
-
 ArrayList<IntList> presetChanges, bankChanges;
 
 ArrayList<Config> configs;
@@ -103,21 +100,7 @@ void setup() {
     else if (output instanceof String) 
       midiBus.addOutput((String)output);
   }
-  
-  //println("programChanges: " + programChanges.size());
-  
-  /*
-  for(IntList pc: programChanges) {
-    println(pc.get(0) + ":" +  pc.get(1));
-    midiBus.sendMessage(pc.get(0), pc.get(1));
-  }
-  */
-  
-  //programChanges.clear();
-  
-  //notes = new ArrayList<Note>();
-  //controllerChanges = new ArrayList<ControllerChange>();
-  
+    
   last = millis();
   
   configRefreshDelayTime = configs.get(0).getConfig().getInt("CONFIG_REFRESH_DELAY");
