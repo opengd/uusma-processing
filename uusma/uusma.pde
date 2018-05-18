@@ -5,6 +5,8 @@ MidiBus midiBus; // The MidiBus
 //ArrayList<Note> notes; // A bunch of notes
 //ArrayList<ControllerChange> controllerChanges; // A bunch of cc's
 
+ArrayList<IntList> presetChanges, bankChanges;
+
 ArrayList<Config> configs;
 
 int last, delta, configRefreshDelayTime, mainJsonCheckDelay, defaultConfigSize;
@@ -56,7 +58,9 @@ String noteConfig =
   "\"CHANNEL\": 0," + 
   "\"NOTE\": true," +
   "\"PARENT_CHANNEL\": 0," + 
-  "\"MONO\": false";
+  "\"MONO\": false," + 
+  "\"BANK\": 0," +
+  "\"PRESET\": 0";
 
 // Default CC config
 String ccConfig = 
@@ -71,12 +75,14 @@ String ccConfig =
   "\"CC_GEN_DELAY_MAX\": 10000," +
   "\"CC_GEN_DELAY_MIN\": 0," +
   "\"CC_SET_LIST\": []," +
-  "\"CC_CHANNELS_BANKS\": []," + 
   "\"CC\": false";
 
 void setup() {
   size(400, 400);
   background(0);
+  
+  presetChanges = new ArrayList<IntList>();
+  bankChanges = new ArrayList<IntList>();
   
   configs = new ArrayList<Config>();
     
@@ -98,6 +104,17 @@ void setup() {
       midiBus.addOutput((String)output);
   }
   
+  //println("programChanges: " + programChanges.size());
+  
+  /*
+  for(IntList pc: programChanges) {
+    println(pc.get(0) + ":" +  pc.get(1));
+    midiBus.sendMessage(pc.get(0), pc.get(1));
+  }
+  */
+  
+  //programChanges.clear();
+  
   //notes = new ArrayList<Note>();
   //controllerChanges = new ArrayList<ControllerChange>();
   
@@ -117,6 +134,8 @@ void draw() {
   
   JSONObject defaultConf = configs.get(0).getConfig();
   
+  Boolean logVerbose = (Boolean)getValue(configs.get(0), "LOG_CONFIG_VERBOSE");
+  
   if(defaultConf.getBoolean("USE_CONFIG_REFRESH")) {
 
     configRefreshDelayTime = configRefreshDelayTime - delta;
@@ -132,6 +151,22 @@ void draw() {
       mainJsonCheckDelay = defaultConf.getInt("ON_FALSE_CONFIG_REFRESH_DELAY");
     }
   }
+  
+  for(IntList pc: bankChanges) {
+    if(logVerbose)
+      println("bank_change:" + pc.get(0) + ":" +  pc.get(1) + ":" +  pc.get(2));
+    midiBus.sendControllerChange(pc.get(0)-1, pc.get(1),  pc.get(2));
+  }
+  
+  bankChanges.clear();
+  
+  for(IntList pc: presetChanges) {
+    if(logVerbose)
+      println("preset_change:" + pc.get(0) + ":" +  pc.get(1));
+    midiBus.sendMessage(pc.get(0), pc.get(1));
+  }
+  
+  presetChanges.clear();
     
   for(Config conf: configs) {
     if(!conf.getConfig().isNull("PLAY_PIECE") && conf.getConfig().getBoolean("PLAY_PIECE")) {
@@ -568,7 +603,7 @@ int CreateConfig(Config con, int confIndex) {
           if(!match) {
             Config c = new Config(jo);
             
-            ParseJsonConfig(jo, c.getConfig());
+            //ParseJsonConfig(c.getConfig(), c.getConfig());
             if(!c.toRemove()) {
               c.playPieceRefreshDelay = (int)getValue(c, "PIECE_REFRESH_DELAY");
               c.playCompositionRefreshDelay = (int)getValue(c, "COMPOSITION_REFRESH_DELAY");
@@ -577,6 +612,14 @@ int CreateConfig(Config con, int confIndex) {
               int GEN_NOTE_DELAY_MAX = (int)getValue(c, "GEN_NOTE_DELAY_MAX");
               
               c.delay = int(random(GEN_NOTE_DELAY_MIN, GEN_NOTE_DELAY_MAX));
+              
+              if(!c.getConfig().isNull("PRESET")) {
+                presetChanges.add(new IntList(191 + c.getChannel(), (int)getValue(c, "PRESET")));
+              }
+              
+              if(!c.getConfig().isNull("BANK")) {
+                bankChanges.add(new IntList(c.getChannel(), 0, (int)getValue(c, "BANK")));
+              }
               
               configs.add(c);
             }
@@ -908,6 +951,13 @@ void ParseJsonConfig(JSONObject json, JSONObject config) {
     
     if(cv instanceof Integer && jv instanceof Integer && (int)cv != (int)jv) {
       config.setInt(name, (int)jv);
+      println(name);
+      if(name.equals("PRESET")) {
+        presetChanges.add(new IntList(191 + (new Config(config).getChannel()), (int)jv));
+      } else if(name.equals("BANK")) {
+        bankChanges.add(new IntList((new Config(config).getChannel()), 0, (int)jv));
+      }
+          
       if(logVerbose)
         println(name + ":change:from:" + (int)cv + ":to:" + (int)jv);
     } else if(cv instanceof Boolean && jv instanceof Boolean && (boolean)cv != (boolean)jv) {
