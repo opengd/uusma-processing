@@ -29,7 +29,11 @@ String mainConfig =
   "\"CONFIG\": [\"main.json\", \"note.json\", \"cc.json\"]," + 
   "\"NAME\": \"\"," + 
   "\"PARENT_NAME\": \"\"," +
-  "\"REMOVE\": false";
+  "\"REMOVE\": false," + 
+  "\"LOG_CONFIG_VERBOSE\": false," +
+  "\"LOG_COMPOSITION_VERBOSE\": false," +
+  "\"LOG_NOTE_VERBOSE\": false," + 
+  "\"LOG_CC_VERBOSE\": false";
 
 // Default Note config
 String noteConfig = 
@@ -78,7 +82,8 @@ void setup() {
     
   LoadConfig(true); // Load main, note and cc config file from json files or default string config 
 
-  MidiBus.list(); // List all available Midi devices on STDOUT. This will show each device's index and name.
+  if((Boolean)getValue(configs.get(0), "LOG_CONFIG_VERBOSE"))
+    MidiBus.list(); // List all available Midi devices on STDOUT. This will show each device's index and name.
 
   midiBus = new MidiBus(this); // Create a new MidiBus
   
@@ -220,6 +225,8 @@ void CreateNotes(Config conf) {
   if((Boolean)getValue(conf, "MONO") && conf.notes.size() > 0)
     return;
     
+  Boolean logVerbose = (Boolean)getValue(conf, "LOG_NOTE_VERBOSE");
+    
   Integer channel = conf.getChannel() != null && conf.getChannel() != 0 ? conf.getChannel() : null;
       
   // How many new Notes should be generated on this loop
@@ -232,7 +239,6 @@ void CreateNotes(Config conf) {
     
     int CHANNEL_MIN = (int)getValue(conf, "CHANNEL_MIN");
     int CHANNEL_MAX = (int)getValue(conf, "CHANNEL_MAX");
-    println(CHANNEL_MIN + " " + CHANNEL_MAX);
     channel = int(random(CHANNEL_MIN, CHANNEL_MAX));
   }
     
@@ -255,7 +261,8 @@ void CreateNotes(Config conf) {
       int(random(PITCH_MIN, PITCH_MAX)), // Generate a random pitch value for the new note, 
       int(random(VELOCITY_MIN, VELOCITY_MAX)), // Generate a random velocity value for the new note
       int(random(NOTE_TIME_MIN, NOTE_TIME_MAX)), 
-      int(random(NOTE_DELAY_MIN, NOTE_DELAY_MAX)));
+      int(random(NOTE_DELAY_MIN, NOTE_DELAY_MAX)),
+      logVerbose);
     conf.notes.add(newNote);
     
     newNumberOfNotes--;
@@ -263,7 +270,9 @@ void CreateNotes(Config conf) {
 }
 
 void CreateCC(Config conf) {
-          
+  
+  Boolean logVerbose = (Boolean)getValue(conf, "LOG_CC_VERBOSE");
+  
   // How many new CC should be generated on this loop  
   int CC_GEN_NB_MIN = (int)getValue(conf, "CC_GEN_NB_MIN");
   int CC_GEN_NB_MAX = (int)getValue(conf, "CC_GEN_NB_MAX");
@@ -311,7 +320,8 @@ void CreateCC(Config conf) {
           value = int(random(CC_GEN_VALUE_MIN, CC_GEN_VALUE_MAX));
         }
       }
-      println("Using cc set list: channel:" + channel + ":number:" + number + ":value:" + value);        
+      if(logVerbose)
+        println("Using cc set list: channel:" + channel + ":number:" + number + ":value:" + value);        
       
     } else {
       int CC_GEN_CHANNEL_MIN = (int)getValue(conf, "CC_GEN_CHANNEL_MIN");
@@ -486,10 +496,12 @@ void LoadConfig(boolean init) {
     confIndex = CreateConfig(con, confIndex);
   }
   
-  println("configs:size:" + configs.size());
+  if((Boolean)getValue(configs.get(0), "LOG_CONFIG_VERBOSE"))
+    println("configs:size:" + configs.size());
   
   for(Config con: configs)
-    println(con.getConfig());
+    if((Boolean)getValue(con, "LOG_CONFIG_VERBOSE"))
+      println(con.getConfig());
   
   if(configs.size() == 0 || configs.get(0).size() != defaultConfigSize) {// If 0 config have been removed, create default config again 
     println("Creating new default config");
@@ -533,11 +545,14 @@ int CreateConfig(Config con, int confIndex) {
             
             if(DoParsConfig(name, channel, confName, confChannel)) {
               ParseJsonConfig(jo, conf.getConfig());
-              println("**********DoParsConfig**********");
-              println(name + ":" + confName);
-              println(channel + ":" + confChannel);
-              println(jo);
-              println("**************************");
+              
+              if((Boolean)getValue(conf, "LOG_CONFIG_VERBOSE")) {
+                println("**********DoParsConfig**********");
+                println(name + ":" + confName);
+                println(channel + ":" + confChannel);
+                println(jo);
+                println("**************************");
+              }
               
               if(conf.toRemove()) { // If the REMOVE is set, then remove the config from list of configs
                 configs.remove(innerIdex);
@@ -627,6 +642,8 @@ void LoadConfigJson(JSONObject jsonConfig, String configFilename, boolean init, 
 
 void ParseComposition(String[] composition, Config conf) {
   
+  Boolean logVerbose = (Boolean)getValue(conf, "LOG_COMPOSITION_VERBOSE");
+  
   String currentMacro = null;
   
   Boolean insideComposition = false;
@@ -674,8 +691,10 @@ void ParseComposition(String[] composition, Config conf) {
         }
         
         conf.compositionCurrentRow = time;
-        println("currentCompositionDelay: " + conf.currentCompositionDelay);
-        println("compositionCurrentRow: " + conf.compositionCurrentRow);
+        if(logVerbose) {
+          println("currentCompositionDelay: " + conf.currentCompositionDelay);
+          println("compositionCurrentRow: " + conf.compositionCurrentRow);
+        }
       }
       
       if(conf.currentCompositionDelay != null) {
@@ -734,7 +753,8 @@ void ParseComposition(String[] composition, Config conf) {
         } else {
           conf.currentCompositionDelay = (float)jmpTo;
           conf.compositionCurrentRow = jmpTo;
-          println("jmpTo:" + jmpTo + ":currentJmpStackCounter:" + conf.jmpStack.get("" + jmpTo));
+          if(logVerbose)
+            println("jmpTo:" + jmpTo + ":currentJmpStackCounter:" + conf.jmpStack.get("" + jmpTo));
         }             
       }
     }
@@ -742,11 +762,13 @@ void ParseComposition(String[] composition, Config conf) {
     if((conf.currentCompositionDelay == null || conf.currentCompositionDelay <= 0) && (rowIndex+1) == composition.length) {
       conf.compositionCurrentRow = null;
       conf.currentCompositionDelay = null;
-      println("EOF");
+      if(logVerbose)
+        println("EOF");
       
       if((Boolean)getValue(conf, "COMPOSITION_CLEAR_JMP_STACK_ON_EOF")) {
         conf.jmpStack.clear();
-        println("JMP Stack cleared");
+        if(logVerbose)
+          println("JMP Stack cleared");
       }
       
     } else if(conf.currentCompositionDelay != null && conf.currentCompositionDelay <= 0) {
@@ -757,13 +779,17 @@ void ParseComposition(String[] composition, Config conf) {
 }
 
 void ParseJsonPiece(JSONObject piece, Config conf) {
+  
+  Boolean logVerbose = (Boolean)getValue(conf, "LOG_COMPOSITION_VERBOSE");
+  
   java.util.Set pieceKeys = piece.keys();
   
   if(pieceKeys.size() > 0 && conf.currentMovmentDelay == null) {
     conf.currentMovmentDelay = GetNextMovmentDelay(pieceKeys, conf.currentMovmentDelay);
     conf.currentMovmentName = "" + conf.currentMovmentDelay;
     
-    println("currentMovmentName: " + conf.currentMovmentName);
+    if(logVerbose)
+      println("currentMovmentName: " + conf.currentMovmentName);
     
     conf.pieceDelta = 0;
     conf.pieceLast = millis();
@@ -789,7 +815,8 @@ void ParseJsonPiece(JSONObject piece, Config conf) {
       
       conf.currentMovmentName = "" + next;
       
-      println("new:movment:name:" + conf.currentMovmentName + ":delay:" + conf.currentMovmentDelay);
+      if(logVerbose)
+        println("new:movment:name:" + conf.currentMovmentName + ":delay:" + conf.currentMovmentDelay);
     }
   } 
 }
@@ -798,7 +825,8 @@ void ParseMovment(JSONObject piece, String movmentName, Config conf) {
   
   JSONObject movement = (JSONObject)piece.get(movmentName);
   
-  println("parse:movment:" + movmentName);
+  if((Boolean)getValue(conf, "LOG_COMPOSITION_VERBOSE"))
+    println("parse:movment:" + movmentName);
   
   JSONObject json = movement.getJSONObject("main");
   if(json != null)
@@ -859,6 +887,9 @@ int GetNextMovmentDelay(java.util.Set movments, Integer current) {
 }
 
 void ParseJsonConfig(JSONObject json, JSONObject config) {
+  
+  Boolean logVerbose = (Boolean)getValue(new Config(config), "LOG_CONFIG_VERBOSE");
+  
   java.util.Set theKeys = json.keys();
   
   for(Object j: theKeys) {      
@@ -871,27 +902,34 @@ void ParseJsonConfig(JSONObject json, JSONObject config) {
     
     if(cv == null) { // If vars not in conf get parent or default value if it exist
       cv = getValue(new Config(config), name);
-      println("null: " + name + ":" + cv);
+      if(logVerbose)
+        println("null: " + name + ":" + cv);
     }
     
     if(cv instanceof Integer && jv instanceof Integer && (int)cv != (int)jv) {
       config.setInt(name, (int)jv);
-      println(name + ":change:from:" + (int)cv + ":to:" + (int)jv);
+      if(logVerbose)
+        println(name + ":change:from:" + (int)cv + ":to:" + (int)jv);
     } else if(cv instanceof Boolean && jv instanceof Boolean && (boolean)cv != (boolean)jv) {
       config.setBoolean(name, (boolean)jv);
-      println(name + ":change:from:" + (boolean)cv + ":to:" + (boolean)jv);
+      if(logVerbose)
+        println(name + ":change:from:" + (boolean)cv + ":to:" + (boolean)jv);
     } else if(cv instanceof Float && jv instanceof Float && (float)cv != (float)jv) {
       config.setFloat(name, (float)jv);
-      println(name + ":change:from:" + (float)cv + ":to:" + (float)jv);
+      if(logVerbose)
+        println(name + ":change:from:" + (float)cv + ":to:" + (float)jv);
     } else if(cv instanceof JSONArray && jv instanceof JSONArray && !(""+(JSONArray)cv).equals(""+(JSONArray)jv)) {
       config.setJSONArray(name, (JSONArray)jv);
-      println(name + ":change:from:" + (JSONArray)cv + ":to:" + (JSONArray)jv);
+      if(logVerbose)
+        println(name + ":change:from:" + (JSONArray)cv + ":to:" + (JSONArray)jv);
     } else if(cv instanceof JSONObject && jv instanceof JSONObject && !(""+(JSONObject)cv).equals(""+(JSONObject)jv)) {
       config.setJSONObject(name, (JSONObject)jv);
-      println(name + ":change:from:" + (JSONObject)cv + ":to:" + (JSONObject)jv);
+      if(logVerbose)
+        println(name + ":change:from:" + (JSONObject)cv + ":to:" + (JSONObject)jv);
     } else if (cv instanceof String && jv instanceof String && !((String)cv).equals((String)jv)) {
       config.setString(name, (String)jv);
-      println(name + ":change:from:" + (String)cv + ":to:" + (String)jv);
+      if(logVerbose)
+        println(name + ":change:from:" + (String)cv + ":to:" + (String)jv);
     } else if (cv instanceof Integer && jv instanceof String && ((String)jv).length() > 0) {
       
       StringList sl = new StringList();
@@ -914,7 +952,8 @@ void ParseJsonConfig(JSONObject json, JSONObject config) {
       char sign = 0;      
       Integer mem = null;
       
-      println(sl);
+      if(logVerbose)
+        println(sl);
       
       for(int i = 0; i < sl.size(); i++) {
         String ns = sl.get(i);
@@ -949,7 +988,8 @@ void ParseJsonConfig(JSONObject json, JSONObject config) {
         }
       }
       
-      println(mem);
+      if(logVerbose)
+        println(mem);
       
       if(mem != null && sl.get(0).equals("+")) {
         mem = (int)cv + mem;
@@ -959,7 +999,8 @@ void ParseJsonConfig(JSONObject json, JSONObject config) {
 
       if (mem != null) {
         config.setInt(name, mem);
-        println(name + ":change:from:" + (int)cv + ":to:" + mem);
+        if(logVerbose)
+          println(name + ":change:from:" + (int)cv + ":to:" + mem);
       }
     }          
   }
@@ -968,9 +1009,9 @@ void ParseJsonConfig(JSONObject json, JSONObject config) {
 class Note {
   
   int channel, pitch, velocity, time, delay, init_delay, init_time;
-  boolean playing = false;
+  boolean playing = false, logVerbose;
   
-  Note(int channel, int pitch, int velocity, int time, int delay) {
+  Note(int channel, int pitch, int velocity, int time, int delay, Boolean logVerbose) {
     this.channel = channel;
     this.pitch = pitch;
     this.velocity = velocity;
@@ -978,14 +1019,17 @@ class Note {
     this.init_time = time;
     this.delay = delay;
     this.init_delay = delay;
+    this.logVerbose = logVerbose;
     
-    println("NEW:NOTE:channel:" + this.channel + ":pitch:" + this.pitch + ":velocity:" + this.velocity + ":time:" + this.time + ":delay:" + this.delay);
+    if(this.logVerbose)
+      println("NEW:NOTE:channel:" + this.channel + ":pitch:" + this.pitch + ":velocity:" + this.velocity + ":time:" + this.time + ":delay:" + this.delay);
   }
   
   void Play() {
     if(!playing) {
       midiBus.sendNoteOn(channel-1, pitch, velocity); // Send a Midi noteOn
-      println("PLAY:NOTE:channel:" + this.channel + ":pitch:" + this.pitch + ":velocity:" + this.velocity + ":time:" + this.time + ":init_time:" + this.init_time + ":delay:" + this.delay + ":init_delay:" + this.init_delay);
+      if(logVerbose)
+        println("PLAY:NOTE:channel:" + this.channel + ":pitch:" + this.pitch + ":velocity:" + this.velocity + ":time:" + this.time + ":init_time:" + this.init_time + ":delay:" + this.delay + ":init_delay:" + this.init_delay);
     }
     
     playing = true;
@@ -994,7 +1038,8 @@ class Note {
   void Stop() {
     if(playing) {
       midiBus.sendNoteOff(channel-1, pitch, velocity); // Send a Midi nodeOff
-      println("STOP:NOTE:channel:" + this.channel + ":pitch:" + this.pitch + ":velocity:" + this.velocity + ":time:" + this.time + ":init_time:" + this.init_time + ":delay:" + this.delay + ":init_delay:" + this.init_delay);
+      if(this.logVerbose)
+        println("STOP:NOTE:channel:" + this.channel + ":pitch:" + this.pitch + ":velocity:" + this.velocity + ":time:" + this.time + ":init_time:" + this.init_time + ":delay:" + this.delay + ":init_delay:" + this.init_delay);
     }
     
     playing = false;
