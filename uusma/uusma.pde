@@ -859,6 +859,14 @@ void ParseMovment(JSONObject piece, String movmentName, Config conf) {
     Object json = movement.get(i);
     if(json != null && json instanceof JSONObject)
       ParseJsonConfig((JSONObject)json, conf.getConfig());
+    else if(json != null && json instanceof String) {
+      try {
+        JSONObject mo = loadJSONObject((String)json);
+        ParseJsonConfig(mo, conf.getConfig());
+      } catch(Exception e) {
+        println("Could not parse macro config file " + (String)json);
+      }
+    }
     else if(json != null && json instanceof JSONArray) {    
       for(int c = 0; c < ((JSONArray)json).size(); c++) {
         JSONObject macro = ((JSONArray)json).getJSONObject(c);
