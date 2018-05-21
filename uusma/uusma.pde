@@ -849,38 +849,33 @@ void ParseJsonPiece(JSONObject piece, Config conf) {
 
 void ParseMovment(JSONObject piece, String movmentName, Config conf) {
   
-  JSONObject movement = (JSONObject)piece.get(movmentName);
+  JSONArray movement = (JSONArray)piece.get(movmentName);
   
   if((Boolean)getValue(conf, "LOG_COMPOSITION_VERBOSE"))
     println("parse:movment:" + movmentName);
   
-  JSONObject json = movement.getJSONObject("main");
-  if(json != null)
-    ParseJsonConfig(json, conf.getConfig());
-  json = movement.getJSONObject("note");
-  if(json != null)
-    ParseJsonConfig(json, conf.getConfig());
-  json = movement.getJSONObject("cc");
-  if(json != null)
-    ParseJsonConfig(json, conf.getConfig());
+  for(int i = 0; i < movement.size(); i++) {
   
-  JSONArray ja = movement.getJSONArray("macro");
-  if(ja != null && ja.size() > 0) {
-    
-    for(int i = 0; i < ja.size(); i++) {
-      JSONObject macro = ja.getJSONObject(i);
-      
-      if(macro.getString("source") != null) {
-        try {
-          JSONObject mo = loadJSONObject(macro.getString("source"));
-          JSONArray doMacros = macro.getJSONArray("do");
-          for(int m = 0; m < doMacros.size(); m++) {
-            ParseMovment(mo, doMacros.getString(m), conf);
+    Object json = movement.get(i);
+    if(json != null && json instanceof JSONObject)
+      ParseJsonConfig((JSONObject)json, conf.getConfig());
+    else if(json != null && json instanceof JSONArray) {    
+      for(int c = 0; c < ((JSONArray)json).size(); c++) {
+        JSONObject macro = ((JSONArray)json).getJSONObject(c);
+        
+        if(!macro.isNull("source") && !macro.isNull("do")) {
+          try {
+            JSONObject mo = loadJSONObject(macro.getString("source"));
+            JSONArray doMacros = macro.getJSONArray("do");
+            for(int m = 0; m < doMacros.size(); m++) {
+              ParseMovment(mo, doMacros.getString(m), conf);
+            }
+          } catch(Exception e) {
+            println("Could not parse macro file " + macro.getString("source"));
           }
-        } catch(Exception e) {
         }
-      }
-    }    
+      }    
+    }
   }
 }
 
