@@ -676,6 +676,9 @@ void ParseComposition(String[] composition, Config conf) {
   
   Boolean useCompositionInMarkdown = (Boolean)getValue(conf, "USE_COMPOSITION_IN_MARKDOWN");
   
+  if(logVerbose)
+    println("start_parse:conf.currentCompositionDelay:" + conf.currentCompositionDelay + ":conf.compositionCurrentRow:" + conf.compositionCurrentRow);
+  
   for(int rowIndex = 0; rowIndex < composition.length; rowIndex++) {
     //println(rowIndex + " : " + composition[rowIndex]);
     String[] unclean = split(composition[rowIndex], ' ');
@@ -707,6 +710,9 @@ void ParseComposition(String[] composition, Config conf) {
       }
       
       if(conf.currentCompositionDelay == null && time >= 0) {
+        if(logVerbose)
+          println("time:" + time + ":conf.compositionCurrentRow:" + conf.compositionCurrentRow);
+        
         conf.compositionDelta = 0;
         conf.compositionLast = millis() * 0.001;
         
@@ -729,7 +735,7 @@ void ParseComposition(String[] composition, Config conf) {
         conf.compositionLast = m;
         
         conf.currentCompositionDelay = conf.currentCompositionDelay - conf.compositionDelta;
-        //println("currentCompositionDelay: " + currentCompositionDelay);
+        //println("currentCompositionDelay: " + conf.currentCompositionDelay);
       }
       
       if(time >= 0 && conf.currentCompositionDelay <= 0 && time == conf.compositionCurrentRow && list.length > 1) {
@@ -740,12 +746,14 @@ void ParseComposition(String[] composition, Config conf) {
             
             // Check for comments
             String comCheck = list[i].substring(0, 1);
-            if(comCheck.equals("#")) 
+            if(comCheck.equals("#") || comCheck.equals("//")) 
               break;
            
             ParseMovment(json, list[i], conf);
           }              
-        } catch(Exception e) {}
+        } catch(Exception e) {
+          println("Could not parse movment: " + e);
+        }
         
         conf.currentCompositionDelay = null;
       } else if (time == -1 && conf.currentCompositionDelay == null && list.length > 1 && list[0].toLowerCase().equals("jmp")) {          
@@ -795,12 +803,13 @@ void ParseComposition(String[] composition, Config conf) {
         conf.jmpStack.clear();
         if(logVerbose)
           println("JMP Stack cleared");
-      }
-      
-    } else if(conf.currentCompositionDelay != null && conf.currentCompositionDelay <= 0) {
-      conf.compositionCurrentRow = null;
-      conf.currentCompositionDelay = null;
+      } 
     }
+  }
+  
+  if(conf.currentCompositionDelay != null && conf.currentCompositionDelay <= 0) {
+     conf.compositionCurrentRow = null;
+     conf.currentCompositionDelay = null;
   }
 }
 
@@ -937,7 +946,7 @@ void ParseJsonConfig(JSONObject json, JSONObject config) {
     
     if(cv instanceof Integer && jv instanceof Integer && (int)cv != (int)jv) {
       config.setInt(name, (int)jv);
-      println(name);
+      //println(name);
       if(name.equals("PRESET")) {
         presetChanges.add(new IntList(191 + (new Config(config).getChannel()), (int)jv));
       } else if(name.equals("BANK")) {
