@@ -32,7 +32,8 @@ String mainConfig =
   "\"LOG_CONFIG_VERBOSE\": false," +
   "\"LOG_COMPOSITION_VERBOSE\": false," +
   "\"LOG_NOTE_VERBOSE\": false," + 
-  "\"LOG_CC_VERBOSE\": false";
+  "\"LOG_CC_VERBOSE\": false," + 
+  "\"EXIT\": false";
 
 // Default Note config
 String noteConfig = 
@@ -119,7 +120,11 @@ void draw() {
   
   Boolean logVerbose = (Boolean)getValue(configs.get(0), "LOG_CONFIG_VERBOSE");
   
-  if(defaultConf.getBoolean("USE_CONFIG_REFRESH")) {
+  if(defaultConf.getBoolean("EXIT")) {
+    if(logVerbose)
+      println("exit:true");
+    exit();
+  } else if(defaultConf.getBoolean("USE_CONFIG_REFRESH")) {
 
     configRefreshDelayTime = configRefreshDelayTime - delta;
     
