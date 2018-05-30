@@ -123,6 +123,13 @@ void draw() {
   if(defaultConf.getBoolean("EXIT")) {
     if(logVerbose)
       println("exit:true");
+    for(Config conf: configs) {
+      for(Note n: conf.notes) {
+        if(n.IsPlaying()) {
+          n.Stop();
+        }
+      }
+    }
     exit();
   } else if(defaultConf.getBoolean("USE_CONFIG_REFRESH")) {
 
