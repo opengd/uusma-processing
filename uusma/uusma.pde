@@ -938,6 +938,31 @@ int GetNextMovmentDelay(java.util.Set movments, Integer current) {
 
 void ParseJsonConfig(JSONObject json, JSONObject config) {
   
+  if(!json.isNull("NAME")) {
+    if(config.isNull("NAME") || !config.getString("NAME").equals(json.getString("NAME"))) {
+      for(Config c: configs) {
+        if(c.getName() != null && c.getName().equals(json.getString("NAME"))) {
+          config = c.getConfig();
+          break;
+        }
+      }
+    }
+  } else if(!json.isNull("CHANNEL")) {
+    if(config.isNull("CHANNEL") || config.getInt("CHANNEL") != json.getInt("CHANNEL")) { 
+      for(Config c: configs) {
+        if(c.getChannel() == json.getInt("CHANNEL")) {
+          ParseJSONObject(json, c.getConfig());
+        }
+      }
+      return;
+    }
+  }
+  
+  ParseJSONObject(json, config);
+}
+
+void ParseJSONObject(JSONObject json, JSONObject config) {
+  
   Boolean logVerbose = (Boolean)getValue(new Config(config), "LOG_CONFIG_VERBOSE");
   
   java.util.Set theKeys = json.keys();
