@@ -61,7 +61,9 @@ String noteConfig =
   "\"BANK\": 0," +
   "\"PRESET\": 0," + 
   "\"CLEAR_ALL_QUEUED_NOTES\": false," + 
-  "\"CLEAR_ALL_PLAYING_NOTES\": false";
+  "\"CLEAR_ALL_PLAYING_NOTES\": false," + 
+  "\"NOTES_CLEAR_QUEUED\": false," + 
+  "\"NOTES_CLEAR_CURRENT\": false";
 
 // Default CC config
 String ccConfig = 
@@ -124,7 +126,7 @@ void draw() {
   JSONObject defaultConf = configs.get(0).getConfig();
   
   Boolean logVerbose = (Boolean)getValue(configs.get(0), "LOG_CONFIG_VERBOSE");
-    
+  
   if(defaultConf.getBoolean("CLEAR_ALL_QUEUED_NOTES")) {
     if(logVerbose)
       println("clear_all_queued_notes:true");
@@ -149,8 +151,32 @@ void draw() {
         }
       }      
     }
-  } 
+  }
   
+  for(Config conf: configs) {
+    if((Boolean)getValue(conf, "NOTES_CLEAR_QUEUED")) {
+      if(logVerbose)
+        println("notes_clear_queued:true");
+      
+      for(int i = conf.notes.size()-1; i >= 0; i--) {
+        if(!conf.notes.get(i).IsPlaying()) 
+          conf.notes.remove(i);
+      }      
+    } 
+    
+    if((Boolean)getValue(conf, "NOTES_CLEAR_CURRENT")) {
+      if(logVerbose)
+        println("notes_clear_current:true");
+      
+      for(int i = conf.notes.size()-1; i >= 0; i--) {
+        if(conf.notes.get(i).IsPlaying()) {
+          conf.notes.get(i).Stop();
+          conf.notes.remove(i);
+        }
+      }      
+    }
+  }
+    
   if(defaultConf.getBoolean("EXIT")) {
     if(logVerbose)
       println("exit:true");
