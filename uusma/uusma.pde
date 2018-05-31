@@ -711,6 +711,8 @@ void ParseComposition(String[] composition, Config conf) {
       //println("insideComposition: " + insideComposition);
     } else if((insideComposition || !useCompositionInMarkdown) && list.length > 0 && list[0].equals("macro")) {
       currentMacro = list[1];
+    } else if((insideComposition || !useCompositionInMarkdown) && list.length > 0 &&list[0].toLowerCase().equals("out")) {
+        //println("hello");
     } else if (list.length > 0 && (insideComposition || !useCompositionInMarkdown)){
             
       int time;
@@ -786,7 +788,7 @@ void ParseComposition(String[] composition, Config conf) {
                 }
                 
                 if(!found)
-                  println("Could not find any config for channel " + channel);
+                  println("Could not find any config for channel" + channel);
               } else if(runMacro.length() > 0) { 
                 for(Config c: configs) {
                   if(c.getName() != null && c.getName().equals(nameOrChannel)) {
@@ -796,7 +798,7 @@ void ParseComposition(String[] composition, Config conf) {
                   }
                 }
                 if(!found)
-                  println("Could not find any config for name " + nameOrChannel);
+                  println("Could not find any config for name" + nameOrChannel);
               }
             } else {
               ParseMovment(json, list[i], conf);
@@ -979,34 +981,31 @@ void ParseJsonConfig(JSONObject json, JSONObject config) {
   
   Boolean found = false;
   
-  if(!json.isNull("NAME")) {
-    if(config.isNull("NAME") || !config.getString("NAME").equals(json.getString("NAME"))) {
-      for(Config c: configs) {
-        if(c.getName() != null && c.getName().equals(json.getString("NAME"))) {
+  if(!json.isNull("NAME") && (config.isNull("NAME") || !config.getString("NAME").equals(json.getString("NAME")))) {
+    for(Config c: configs) {
+        if(c.getName() != null && c.getName().equals(json.getString("NAME")) || (c.getName() == null && json.getString("NAME").equals(""))) {
           ParseJSONObject(json, c.getConfig());
           found = true;
           break;
         }
-      }
     }
     
     if(!found)
-      println("Could not find any config for name " + json.getString("NAME"));
-  } else if(!json.isNull("CHANNEL")) {
-    if(config.isNull("CHANNEL") || config.getInt("CHANNEL") != json.getInt("CHANNEL")) { 
+      println("Could not find any config for name " + json.getString("NAME") + ":" + config.getString("NAME"));
+  } else if(!json.isNull("CHANNEL") && (config.isNull("CHANNEL") || config.getInt("CHANNEL") != json.getInt("CHANNEL"))) {
       for(Config c: configs) {
         if(c.getChannel() == json.getInt("CHANNEL")) {
           ParseJSONObject(json, c.getConfig());
           found = true;
         }
       }
-    }
     
     if(!found)
-      println("Could not find any config for channel " + json.getInt("CHANNEL"));
-  } else { 
-    ParseJSONObject(json, config);
+      println("Could not find any config for channel " + json.getInt("CHANNEL") + ":" + config.getInt("CHANNEL"));
   }
+  
+  if(!found)
+    ParseJSONObject(json, config);
 }
 
 void ParseJSONObject(JSONObject json, JSONObject config) {
