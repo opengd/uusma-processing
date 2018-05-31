@@ -59,7 +59,9 @@ String noteConfig =
   "\"PARENT_CHANNEL\": 0," + 
   "\"MONO\": false," + 
   "\"BANK\": 0," +
-  "\"PRESET\": 0";
+  "\"PRESET\": 0," + 
+  "\"CLEAR_ALL_NON_PLAYING_NOTES\": false," + 
+  "\"CLEAR_ALL_PLAYING_NOTES\": false";
 
 // Default CC config
 String ccConfig = 
@@ -138,12 +140,7 @@ void draw() {
       println("exit_soft:true");
       
     int playingNotesSum = 0;
-    for(Config conf: configs) {
-      for(int i = conf.notes.size()-1; i >= 0; i--) {
-        if(!conf.notes.get(i).IsPlaying()) 
-          conf.notes.remove(i);
-      }
-      
+    for(Config conf: configs) {      
       playingNotesSum = playingNotesSum + conf.notes.size();
     }
     
@@ -151,6 +148,28 @@ void draw() {
       doExit = true;
     
     doSoftExit = true;
+  } else if (defaultConf.getBoolean("CLEAR_ALL_NON_PLAYING_NOTES")) {
+    if(logVerbose)
+      println("clear_all_non_playing_notes:true");
+    
+    for(Config conf: configs) {
+      for(int i = conf.notes.size()-1; i >= 0; i--) {
+        if(!conf.notes.get(i).IsPlaying()) 
+          conf.notes.remove(i);
+      }      
+    }    
+  } else if (defaultConf.getBoolean("CLEAR_ALL_PLAYING_NOTES")) {
+    if(logVerbose)
+      println("clear_all_playing_notes:true");
+    
+    for(Config conf: configs) {
+      for(int i = conf.notes.size()-1; i >= 0; i--) {
+        if(conf.notes.get(i).IsPlaying()) {
+          conf.notes.get(i).Stop();
+          conf.notes.remove(i);
+        }
+      }      
+    }
   } else if(defaultConf.getBoolean("USE_CONFIG_REFRESH")) {
 
     configRefreshDelayTime = configRefreshDelayTime - delta;
@@ -173,7 +192,7 @@ void draw() {
       HandleNewNotesAndCC();
     }
     
-    PlaybackNotesAndCC(doSoftExit);
+    PlaybackNotesAndCC();
   } else {
     exit();
   }
@@ -245,7 +264,7 @@ void HandleNewNotesAndCC() {
   }
 }
 
-void PlaybackNotesAndCC(Boolean doSoftExit) { 
+void PlaybackNotesAndCC() { 
   for(Config conf: configs) {
     for(int i = 0; i < conf.notes.size(); i++) { // Loop all notes and check time and delay values
   
@@ -259,7 +278,7 @@ void PlaybackNotesAndCC(Boolean doSoftExit) {
           conf.notes.remove(i); // Remove note from ArrayList of notes
           i--;
         }
-      } else if (!doSoftExit){ // If the note is not playing
+      } else { // If the note is not playing
       
         // Sub delay value with delta time
         conf.notes.get(i).delay = conf.notes.get(i).delay - delta;
