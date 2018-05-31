@@ -115,6 +115,7 @@ void draw() {
   int current = millis();
   delta = current - last;
   last = current;
+  Boolean doExit = false;
   
   JSONObject defaultConf = configs.get(0).getConfig();
   
@@ -130,6 +131,7 @@ void draw() {
       conf.notes.clear();
     }
     exit();
+    doExit = true;
   } else if(defaultConf.getBoolean("USE_CONFIG_REFRESH")) {
 
     configRefreshDelayTime = configRefreshDelayTime - delta;
@@ -146,6 +148,17 @@ void draw() {
     }
   }
   
+  if(!doExit) {
+    HandleBankAndPresetChanges(logVerbose);
+    HandleNewNotesAndCC();
+    PlaybackNotesAndCC();
+  }
+           
+  if(!doExit && defaultConf.getBoolean("USE_MAIN_LOOP_DELAY"))
+    delay(int(random(defaultConf.getInt("MAIN_LOOP_DELAY_MIN"), defaultConf.getInt("MAIN_LOOP_DELAY_MAX")))); //Main loop delay
+}
+
+void HandleBankAndPresetChanges(Boolean logVerbose) {
   for(IntList pc: bankChanges) {
     if(logVerbose)
       println("bank_change:" + pc.get(0) + ":" +  pc.get(1) + ":" +  pc.get(2));
@@ -161,7 +174,9 @@ void draw() {
   }
   
   presetChanges.clear();
-    
+}
+
+void HandleNewNotesAndCC() { 
   for(Config conf: configs) {
     if(!conf.getConfig().isNull("PLAY_PIECE") && conf.getConfig().getBoolean("PLAY_PIECE")) {
       
@@ -204,7 +219,9 @@ void draw() {
       conf.delay = int(random(GEN_NOTE_DELAY_MIN, GEN_NOTE_DELAY_MAX));
     }
   }
-  
+}
+
+void PlaybackNotesAndCC() { 
   for(Config conf: configs) {
     for(int i = 0; i < conf.notes.size(); i++) { // Loop all notes and check time and delay values
   
@@ -239,10 +256,8 @@ void draw() {
       }
     }
   }
-   
-  if(defaultConf.getBoolean("USE_MAIN_LOOP_DELAY"))
-    delay(int(random(defaultConf.getInt("MAIN_LOOP_DELAY_MIN"), defaultConf.getInt("MAIN_LOOP_DELAY_MAX")))); //Main loop delay
 }
+
 
 void delay(int time) {
   int current = millis();
