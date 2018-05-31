@@ -124,18 +124,39 @@ void draw() {
   JSONObject defaultConf = configs.get(0).getConfig();
   
   Boolean logVerbose = (Boolean)getValue(configs.get(0), "LOG_CONFIG_VERBOSE");
+    
+  if(defaultConf.getBoolean("CLEAR_ALL_NON_PLAYING_NOTES")) {
+    if(logVerbose)
+      println("clear_all_non_playing_notes:true");
+    
+    for(Config conf: configs) {
+      for(int i = conf.notes.size()-1; i >= 0; i--) {
+        if(!conf.notes.get(i).IsPlaying()) 
+          conf.notes.remove(i);
+      }      
+    }    
+  } 
+  
+  if(defaultConf.getBoolean("CLEAR_ALL_PLAYING_NOTES")) {
+    if(logVerbose)
+      println("clear_all_playing_notes:true");
+    
+    for(Config conf: configs) {
+      for(int i = conf.notes.size()-1; i >= 0; i--) {
+        if(conf.notes.get(i).IsPlaying()) {
+          conf.notes.get(i).Stop();
+          conf.notes.remove(i);
+        }
+      }      
+    }
+  } 
   
   if(defaultConf.getBoolean("EXIT")) {
     if(logVerbose)
       println("exit:true");
-    for(Config conf: configs) {
-      for(Note n: conf.notes) {
-        n.Stop();
-      }
-      conf.notes.clear();
-    }
+      
     doExit = true;
-  } else if (defaultConf.getBoolean("EXIT_SOFT")){
+  } else if(defaultConf.getBoolean("EXIT_SOFT")){
     if(logVerbose)
       println("exit_soft:true");
       
@@ -148,29 +169,9 @@ void draw() {
       doExit = true;
     
     doSoftExit = true;
-  } else if (defaultConf.getBoolean("CLEAR_ALL_NON_PLAYING_NOTES")) {
-    if(logVerbose)
-      println("clear_all_non_playing_notes:true");
-    
-    for(Config conf: configs) {
-      for(int i = conf.notes.size()-1; i >= 0; i--) {
-        if(!conf.notes.get(i).IsPlaying()) 
-          conf.notes.remove(i);
-      }      
-    }    
-  } else if (defaultConf.getBoolean("CLEAR_ALL_PLAYING_NOTES")) {
-    if(logVerbose)
-      println("clear_all_playing_notes:true");
-    
-    for(Config conf: configs) {
-      for(int i = conf.notes.size()-1; i >= 0; i--) {
-        if(conf.notes.get(i).IsPlaying()) {
-          conf.notes.get(i).Stop();
-          conf.notes.remove(i);
-        }
-      }      
-    }
-  } else if(defaultConf.getBoolean("USE_CONFIG_REFRESH")) {
+  }
+  
+  if(!doExit && defaultConf.getBoolean("USE_CONFIG_REFRESH")) {
 
     configRefreshDelayTime = configRefreshDelayTime - delta;
     
@@ -178,7 +179,7 @@ void draw() {
       LoadConfig(false);
       configRefreshDelayTime = defaultConf.getInt("CONFIG_REFRESH_DELAY");
     }
-  } else {
+  } else if(!doExit) {
     mainJsonCheckDelay = mainJsonCheckDelay - delta;
     if(mainJsonCheckDelay <= 0) {
       CheckConfigRefreshSettings();
