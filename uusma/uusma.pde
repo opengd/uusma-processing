@@ -60,7 +60,7 @@ String noteConfig =
   "\"MONO\": false," + 
   "\"BANK\": 0," +
   "\"PRESET\": 0," + 
-  "\"CLEAR_ALL_NON_PLAYING_NOTES\": false," + 
+  "\"CLEAR_ALL_QUEUED_NOTES\": false," + 
   "\"CLEAR_ALL_PLAYING_NOTES\": false";
 
 // Default CC config
@@ -125,9 +125,9 @@ void draw() {
   
   Boolean logVerbose = (Boolean)getValue(configs.get(0), "LOG_CONFIG_VERBOSE");
     
-  if(defaultConf.getBoolean("CLEAR_ALL_NON_PLAYING_NOTES")) {
+  if(defaultConf.getBoolean("CLEAR_ALL_QUEUED_NOTES")) {
     if(logVerbose)
-      println("clear_all_non_playing_notes:true");
+      println("clear_all_queued_notes:true");
     
     for(Config conf: configs) {
       for(int i = conf.notes.size()-1; i >= 0; i--) {
