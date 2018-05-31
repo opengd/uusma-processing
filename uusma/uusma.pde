@@ -760,8 +760,47 @@ void ParseComposition(String[] composition, Config conf) {
             String comCheck = list[i].substring(0, 1);
             if(comCheck.equals("#") || comCheck.equals("//")) 
               break;
-           
-            ParseMovment(json, list[i], conf);
+            else if(comCheck.equals("(")) { 
+              String nameOrChannel = list[i].substring(1, list[i].indexOf(")"));
+              String runMacro = list[i].substring(list[i].indexOf(")") + 1);
+              if(logVerbose)
+                println("nameOrChannel:" + nameOrChannel + ":runMacro:" + runMacro);
+              
+              Integer channel = null;
+              
+              try {
+                channel = Integer.parseInt(nameOrChannel);
+              } catch (NumberFormatException ex) {
+                channel = null;
+              }
+              
+              Boolean found = false;
+              
+              if(channel != null && runMacro.length() > 0) {
+                
+                for(Config c: configs) {
+                  if(c.getChannel() == channel) {
+                    ParseMovment(json, runMacro, c);
+                    found = true;
+                  }
+                }
+                
+                if(!found)
+                  println("Could not find any config for channel " + channel);
+              } else if(runMacro.length() > 0) { 
+                for(Config c: configs) {
+                  if(c.getName() != null && c.getName().equals(nameOrChannel)) {
+                    ParseMovment(json, runMacro, c);
+                    found = true;
+                    break;
+                  }
+                }
+                if(!found)
+                  println("Could not find any config for name " + nameOrChannel);
+              }
+            } else {
+              ParseMovment(json, list[i], conf);
+            }        
           }              
         } catch(Exception e) {
           println("Could not parse movment: " + e);
@@ -938,27 +977,36 @@ int GetNextMovmentDelay(java.util.Set movments, Integer current) {
 
 void ParseJsonConfig(JSONObject json, JSONObject config) {
   
+  Boolean found = false;
+  
   if(!json.isNull("NAME")) {
     if(config.isNull("NAME") || !config.getString("NAME").equals(json.getString("NAME"))) {
       for(Config c: configs) {
         if(c.getName() != null && c.getName().equals(json.getString("NAME"))) {
-          config = c.getConfig();
+          ParseJSONObject(json, c.getConfig());
+          found = true;
           break;
         }
       }
     }
+    
+    if(!found)
+      println("Could not find any config for name " + json.getString("NAME"));
   } else if(!json.isNull("CHANNEL")) {
     if(config.isNull("CHANNEL") || config.getInt("CHANNEL") != json.getInt("CHANNEL")) { 
       for(Config c: configs) {
         if(c.getChannel() == json.getInt("CHANNEL")) {
           ParseJSONObject(json, c.getConfig());
+          found = true;
         }
       }
-      return;
     }
+    
+    if(!found)
+      println("Could not find any config for channel " + json.getInt("CHANNEL"));
+  } else { 
+    ParseJSONObject(json, config);
   }
-  
-  ParseJSONObject(json, config);
 }
 
 void ParseJSONObject(JSONObject json, JSONObject config) {
