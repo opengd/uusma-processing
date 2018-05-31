@@ -125,10 +125,9 @@ void draw() {
       println("exit:true");
     for(Config conf: configs) {
       for(Note n: conf.notes) {
-        if(n.IsPlaying()) {
-          n.Stop();
-        }
+        n.Stop();
       }
+      conf.notes.clear();
     }
     exit();
   } else if(defaultConf.getBoolean("USE_CONFIG_REFRESH")) {
