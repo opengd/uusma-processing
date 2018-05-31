@@ -33,7 +33,8 @@ String mainConfig =
   "\"LOG_COMPOSITION_VERBOSE\": false," +
   "\"LOG_NOTE_VERBOSE\": false," + 
   "\"LOG_CC_VERBOSE\": false," + 
-  "\"EXIT\": false";
+  "\"EXIT\": false," +
+  "\"EXIT_SOFT\": false";
 
 // Default Note config
 String noteConfig = 
@@ -115,7 +116,8 @@ void draw() {
   int current = millis();
   delta = current - last;
   last = current;
-  Boolean doExit = false;
+  
+  Boolean doExit = false, doSoftExit = false;
   
   JSONObject defaultConf = configs.get(0).getConfig();
   
@@ -130,8 +132,25 @@ void draw() {
       }
       conf.notes.clear();
     }
-    exit();
     doExit = true;
+  } else if (defaultConf.getBoolean("EXIT_SOFT")){
+    if(logVerbose)
+      println("exit_soft:true");
+      
+    int playingNotesSum = 0;
+    for(Config conf: configs) {
+      for(int i = conf.notes.size()-1; i >= 0; i--) {
+        if(!conf.notes.get(i).IsPlaying()) 
+          conf.notes.remove(i);
+      }
+      
+      playingNotesSum = playingNotesSum + conf.notes.size();
+    }
+    
+    if(playingNotesSum == 0)
+      doExit = true;
+    
+    doSoftExit = true;
   } else if(defaultConf.getBoolean("USE_CONFIG_REFRESH")) {
 
     configRefreshDelayTime = configRefreshDelayTime - delta;
@@ -149,11 +168,16 @@ void draw() {
   }
   
   if(!doExit) {
-    HandleBankAndPresetChanges(logVerbose);
-    HandleNewNotesAndCC();
-    PlaybackNotesAndCC();
+    if(!doSoftExit) {
+      HandleBankAndPresetChanges(logVerbose);
+      HandleNewNotesAndCC();
+    }
+    
+    PlaybackNotesAndCC(doSoftExit);
+  } else {
+    exit();
   }
-           
+             
   if(!doExit && defaultConf.getBoolean("USE_MAIN_LOOP_DELAY"))
     delay(int(random(defaultConf.getInt("MAIN_LOOP_DELAY_MIN"), defaultConf.getInt("MAIN_LOOP_DELAY_MAX")))); //Main loop delay
 }
@@ -221,7 +245,7 @@ void HandleNewNotesAndCC() {
   }
 }
 
-void PlaybackNotesAndCC() { 
+void PlaybackNotesAndCC(Boolean doSoftExit) { 
   for(Config conf: configs) {
     for(int i = 0; i < conf.notes.size(); i++) { // Loop all notes and check time and delay values
   
@@ -235,7 +259,7 @@ void PlaybackNotesAndCC() {
           conf.notes.remove(i); // Remove note from ArrayList of notes
           i--;
         }
-      } else { // If the note is not playing
+      } else if (!doSoftExit){ // If the note is not playing
       
         // Sub delay value with delta time
         conf.notes.get(i).delay = conf.notes.get(i).delay - delta;
